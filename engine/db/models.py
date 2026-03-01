@@ -5,7 +5,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -174,3 +174,35 @@ class FollowUpLog(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class DripStatus(str, enum.Enum):
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    PAUSED = "paused"
+    UNSUBSCRIBED = "unsubscribed"
+
+
+class DripState(Base):
+    """Tracks each contact's position in the 18-email drip sequence."""
+
+    __tablename__ = "drip_state"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    first_name: Mapped[str] = mapped_column(String(100), default="")
+    company: Mapped[str] = mapped_column(String(255), default="")
+
+    # Position in the 18-step sequence (0 = not started, 1 = email 1 sent, etc.)
+    current_step: Mapped[int] = mapped_column(Integer, default=0)
+    status: Mapped[DripStatus] = mapped_column(
+        Enum(DripStatus), default=DripStatus.ACTIVE
+    )
+
+    # Enrichment data stored as JSON string for template rendering
+    enrichment_json: Mapped[str] = mapped_column(Text, default="{}")
+
+    # Timing
+    enrolled_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    last_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

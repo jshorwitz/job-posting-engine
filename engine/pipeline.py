@@ -1025,6 +1025,32 @@ def run_enrichment(
         stats["exported"] = pushed
         logger.info(f"Pushed {pushed} enriched leads to Loops.so")
 
+        # Enroll exported contacts in the drip sequence
+        from engine.drip.scheduler import enroll_contact
+
+        drip_session = init_db(settings.db_path)()
+        enrolled = 0
+        try:
+            for lead in enriched_leads:
+                lead_email = lead.get("contact_email", "")
+                if not lead_email:
+                    continue
+                full = lead.get("contact_name", "")
+                fn = full.split()[0] if full else ""
+                state = enroll_contact(
+                    session=drip_session,
+                    email=lead_email,
+                    first_name=fn,
+                    company=lead.get("company_name", ""),
+                    enrichment_data=lead,
+                )
+                if state:
+                    enrolled += 1
+            drip_session.commit()
+        finally:
+            drip_session.close()
+        logger.info(f"Drip: enrolled {enrolled} new contacts")
+
     elif export_format == "instantly" and enriched_leads:
         from engine.export.instantly_csv import export_csv
 
@@ -1086,6 +1112,10 @@ def main() -> None:
         choices=["inmail", "connection"],
         help="LinkedIn message type (default: from .env)",
     )
+    parser.add_argument(
+        "--drip", action="store_true",
+        help="Run drip scheduler — sends next due email for each active contact",
+    )
     args = parser.parse_args()
 
     settings = Settings()
@@ -1099,6 +1129,23 @@ def main() -> None:
 
     if args.limit:
         settings.max_emails_per_run = args.limit
+
+    if args.drip:
+        from engine.drip.scheduler import run_drip
+
+        drip_session_factory = init_db(settings.db_path)
+        drip_session = drip_session_factory()
+        try:
+            drip_stats = run_drip(
+                session=drip_session,
+                settings=settings,
+                dry_run=settings.dry_run,
+                limit=args.limit or 50,
+            )
+            logger.info(f"Drip stats: {drip_stats}")
+        finally:
+            drip_session.close()
+        return
 
     if args.enrich:
         run_enrichment(

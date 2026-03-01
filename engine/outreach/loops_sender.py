@@ -264,6 +264,70 @@ def add_contact(
         return False
 
 
+def send_drip_email(
+    settings: Settings,
+    email: str,
+    subject: str,
+    body: str,
+) -> bool:
+    """Send a drip email by updating contact properties and firing event.
+
+    1. Updates drip_subject and drip_body contact properties
+    2. Fires `drip_email` event to trigger the Loop automation
+    3. The Loop automation sends the email using {{drip_subject}} / {{drip_body}}
+    """
+    if not settings.loops_api_key:
+        logger.warning("LOOPS_API_KEY not set — cannot send drip email")
+        return False
+
+    # Convert newlines to <br> for HTML rendering
+    html_body = body.replace("\n", "<br>")
+
+    # Update contact properties with rendered content
+    headers = {
+        "Authorization": f"Bearer {settings.loops_api_key}",
+        "Content-Type": "application/json",
+    }
+
+    # Upsert the drip content as contact properties
+    update_payload = {
+        "email": email,
+        "drip_subject": subject[:200],
+        "drip_body": html_body[:2000],
+    }
+
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.put(
+                f"{LOOPS_API_URL}/contacts/update",
+                headers=headers,
+                json=update_payload,
+            )
+
+        if resp.status_code != 200:
+            logger.warning(f"Loops: drip property update {resp.status_code} — {resp.text[:200]}")
+            return False
+
+    except Exception as exc:
+        logger.warning(f"Loops: drip property update failed — {exc}")
+        return False
+
+    # Fire event to trigger the automation
+    ok = _send_event(
+        settings=settings,
+        email=email,
+        event_name="drip_email",
+        properties={"step_subject": subject[:100]},
+    )
+
+    if not ok:
+        logger.error(f"Loops: drip_email event failed for {email}")
+        return False
+
+    logger.info(f"Loops: drip email sent → {email} | {subject}")
+    return True
+
+
 def _send_event(
     settings: Settings,
     email: str,
