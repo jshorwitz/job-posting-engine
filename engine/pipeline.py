@@ -450,7 +450,7 @@ def _handle_email_outreach(
             f"Noticed {org_name} is hiring a {job_title} — exciting growth signal.\n\n"
             f"Would love to share some paid acquisition strategies that "
             f"could complement your new hire's efforts.\n\n"
-            f"Open to a quick call this week?\n\nBest,\nJoel"
+            f"Open to a quick call this week?\n\nBest,\n{settings.sender_name or 'Best'}"
         )
     else:
         subject, body = generate_outreach_email(

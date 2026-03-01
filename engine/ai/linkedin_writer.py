@@ -24,7 +24,7 @@ INMAIL_SYSTEM = """\
 You are writing a LinkedIn InMail via Sales Navigator.
 Write short, personalized messages under 150 words.
 Reference the specific hiring signal. Offer a concrete insight about
-scaling paid acquisition. End with one clear CTA.
+how you can help. End with one clear CTA.
 Tone: confident but not pushy, peer-to-peer, conversational.
 Never use "I hope this finds you well" or "I came across your company."
 """
@@ -36,16 +36,15 @@ def generate_connection_note(
     company_name: str,
     job_title_hiring: str,
 ) -> str:
-    """Generate a ≤300 char connection request note.
+    """Generate a ≤300 char connection request note."""
+    sender = settings.sender_name or "there"
+    first_name = ceo_name.split()[0] if ceo_name else "there"
 
-    Returns the note text.
-    """
     if not settings.openai_api_key:
-        first_name = ceo_name.split()[0] if ceo_name else "there"
         return (
             f"Hi {first_name} — saw {company_name} is hiring a "
             f"{job_title_hiring}. I help scaling companies accelerate "
-            f"paid growth. Would love to connect. – Joel"
+            f"growth. Would love to connect. – {sender}"
         )[:300]
 
     client = OpenAI(api_key=settings.openai_api_key)
@@ -54,9 +53,9 @@ def generate_connection_note(
 Company: {company_name}
 CEO/Founder: {ceo_name}
 Open role: {job_title_hiring}
-Sender: Joel (growth marketing expert)
+Sender: {sender}
 
-Write a LinkedIn connection request note from Joel. MUST be under 300 characters.
+Write a LinkedIn connection request note from {sender}. MUST be under 300 characters.
 Reference the {job_title_hiring} hire as the reason for reaching out.
 """
 
@@ -71,8 +70,6 @@ Reference the {job_title_hiring} hire as the reason for reaching out.
     )
 
     note = (response.choices[0].message.content or "").strip()
-
-    # Enforce the 300-char limit
     if len(note) > 300:
         note = note[:297] + "..."
 
@@ -87,27 +84,24 @@ def generate_inmail(
     job_title_hiring: str,
     company_domain: str | None = None,
 ) -> tuple[str, str]:
-    """Generate an InMail subject + body via OpenAI.
+    """Generate an InMail subject + body via OpenAI."""
+    sender = settings.sender_name or "there"
+    first_name = ceo_name.split()[0] if ceo_name else "there"
 
-    Returns:
-        Tuple of (subject, body). Subject max 200 chars.
-    """
     if not settings.openai_api_key:
-        first_name = ceo_name.split()[0] if ceo_name else "there"
         subject = f"Re: your {job_title_hiring} hire"
         body = (
             f"Hi {first_name},\n\n"
             f"Noticed {company_name} is hiring a {job_title_hiring} — "
             f"great growth signal.\n\n"
-            f"I help scaling companies build paid acquisition engines "
-            f"that complement new growth hires. Happy to share a few "
+            f"I help scaling companies build growth engines "
+            f"that complement new hires. Happy to share a few "
             f"strategies that have worked for similar companies.\n\n"
-            f"Open to a quick call this week?\n\nJoel"
+            f"Open to a quick call this week?\n\n{sender}"
         )
         return subject, body
 
     client = OpenAI(api_key=settings.openai_api_key)
-
     domain_context = f"\nWebsite: {company_domain}" if company_domain else ""
 
     prompt = f"""\
@@ -115,14 +109,14 @@ Company: {company_name}{domain_context}
 CEO/Founder: {ceo_name}
 Open role: {job_title_hiring}
 
-Write a LinkedIn InMail from Joel (growth marketing expert) to {ceo_name}.
+Write a LinkedIn InMail from {sender} to {ceo_name}.
 The fact that they're hiring a {job_title_hiring} signals growth ambition.
-Offer a specific insight about scaling paid acquisition.
+Offer a specific insight about how you can help them scale.
 
 Respond with exactly two sections:
 SUBJECT: <subject line, max 200 chars>
 BODY:
-<message — first-name greeting, 2-3 short paragraphs, CTA>
+<message — first-name greeting, 2-3 short paragraphs, CTA, sign off as {sender}>
 """
 
     response = client.chat.completions.create(
@@ -143,7 +137,6 @@ BODY:
     if not body:
         body = raw
 
-    # Enforce limits
     subject = subject[:200]
 
     logger.info(f"Generated InMail for {ceo_name} @ {company_name}: {subject}")

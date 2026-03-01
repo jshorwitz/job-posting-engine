@@ -26,13 +26,18 @@ class Settings(BaseSettings):
     loops_transactional_id: str = ""  # deprecated — kept for backwards compat
     loops_mailing_list_id: str = ""
 
+    # --- Sender identity (used in AI-generated messages) ---
+    sender_name: str = ""
+    company_name: str = ""
+    company_pitch: str = ""
+
     # --- SMTP (fallback — used only if Loops not configured) ---
     smtp_host: str = "smtp.sendgrid.net"
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_pass: str = ""
     from_email: str = ""
-    from_name: str = "Joel Horwitz"
+    from_name: str = ""
 
     # --- Slack (optional) ---
     slack_webhook_url: str = ""

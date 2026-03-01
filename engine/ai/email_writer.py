@@ -25,11 +25,10 @@ ABSOLUTE RULES:
 
 WHAT TO SAY:
 - Mention the specific job posting (role title) as the reason you're reaching out.
-- Explain that Synter uses AI agents to run ad campaigns across Google, Meta, LinkedIn,
-  and Reddit, so they can scale paid acquisition fast without waiting for the new hire
-  to ramp up.
+- Explain how {company_name} {company_pitch}, so they can get results fast without
+  waiting for the new hire to ramp up.
 - One clear CTA: a short call this week.
-- Sign off as Joel.
+- Sign off as {sender_name}.
 
 Tone: casual, peer-to-peer, like texting a colleague. Lowercase subject line preferred.
 """
@@ -44,41 +43,40 @@ def generate_outreach_email(
 ) -> tuple[str, str]:
     """Generate a personalized cold email via OpenAI.
 
-    Args:
-        settings:          App settings (API key, model).
-        ceo_name:          Full name of the CEO/founder.
-        company_name:      Company name.
-        job_title_hiring:  The growth role they're hiring for.
-        company_domain:    Company website domain (optional context).
-
     Returns:
         Tuple of (subject_line, email_body).
     """
     client = OpenAI(api_key=settings.openai_api_key)
 
     domain_context = f"\nWebsite: {company_domain}" if company_domain else ""
-
     first_name = ceo_name.split()[0] if ceo_name else "there"
+    sender = settings.sender_name or "there"
+
+    system = SYSTEM_PROMPT.format(
+        company_name=settings.company_name or "our company",
+        company_pitch=settings.company_pitch or "helps companies grow faster",
+        sender_name=sender,
+    )
 
     prompt = f"""\
 Company: {company_name}{domain_context}
 Recipient: {first_name} ({ceo_name})
 They're hiring: {job_title_hiring}
 
-Write a cold email from Joel to {first_name}. Mention the {job_title_hiring} role,
-and explain how Synter can help them scale ads now instead of waiting months for
-the new hire to ramp up.
+Write a cold email from {sender} to {first_name}. Mention the {job_title_hiring} role,
+and explain how {settings.company_name or 'we'} can help them get results now instead
+of waiting months for the new hire to ramp up.
 
 Respond with exactly:
 SUBJECT: <short lowercase subject line>
 BODY:
-<email text, under 100 words, sign off as Joel>
+<email text, under 100 words, sign off as {sender}>
 """
 
     response = client.chat.completions.create(
         model=settings.openai_model,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system},
             {"role": "user", "content": prompt},
         ],
         temperature=0.7,
@@ -91,7 +89,7 @@ BODY:
     if not subject:
         subject = f"Re: your {job_title_hiring} hire"
     if not body:
-        body = raw  # fallback to raw output
+        body = raw
 
     logger.info(f"Generated email for {ceo_name} @ {company_name}: {subject}")
     return subject, body
