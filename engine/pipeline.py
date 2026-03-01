@@ -33,6 +33,7 @@ from pathlib import Path
 
 from engine.ai.email_writer import generate_outreach_email
 from engine.ai.linkedin_writer import generate_connection_note, generate_inmail
+from engine.clients.csv_import import load_contacts_csv, load_jobs_csv
 from engine.clients.slack import post_run_summary
 from engine.clients.sumble import SumbleClient
 from engine.config import Settings
@@ -50,8 +51,18 @@ from engine.db.models import (
 LOG_PREFIX = "[JobPostingEngine]"
 
 
-def run(settings: Settings) -> dict[str, int]:
-    """Execute the full pipeline. Returns stats dict."""
+def run(
+    settings: Settings,
+    csv_jobs: str | None = None,
+    csv_contacts: str | None = None,
+) -> dict[str, int]:
+    """Execute the full pipeline. Returns stats dict.
+
+    Args:
+        settings:      Application settings.
+        csv_jobs:      Path to CSV file with job postings (bypasses Sumble Jobs API).
+        csv_contacts:  Path to CSV file with contacts (bypasses Sumble People API).
+    """
 
     # --- Logging ---
     log_dir = Path("logs")
@@ -69,11 +80,12 @@ def run(settings: Settings) -> dict[str, int]:
 
     channel = settings.outreach_channel.lower()
     li_type = settings.linkedin_outreach_type.lower()
+    source = "CSV" if csv_jobs else "Sumble API"
 
     logger.info("=" * 60)
     logger.info(f"{LOG_PREFIX} Starting")
     logger.info(
-        f"  query={settings.job_query!r}  dry_run={settings.dry_run}  "
+        f"  source={source}  query={settings.job_query!r}  dry_run={settings.dry_run}  "
         f"channel={channel}  linkedin_type={li_type}"
     )
     logger.info(f"  max_per_run={settings.max_emails_per_run}")
@@ -82,9 +94,17 @@ def run(settings: Settings) -> dict[str, int]:
     # --- Init ---
     SessionFactory = init_db(settings.database_path)
     session = SessionFactory()
-    sumble = SumbleClient(settings)
+    sumble = SumbleClient(settings) if not csv_jobs else None
     stats = {"sent": 0, "skipped": 0, "failed": 0, "new_jobs": 0}
     contacted_companies: list[str] = []
+
+    # Pre-load contacts from CSV if provided (bypasses Sumble People API)
+    csv_contact_map: dict[str, dict] = {}
+    if csv_contacts:
+        for c in load_contacts_csv(csv_contacts):
+            key = (c.get("organization_domain") or c.get("organization_name") or "").lower()
+            if key:
+                csv_contact_map[key] = c
 
     # LinkedIn automation (lazy-init only if needed)
     li_automation = None
@@ -97,24 +117,30 @@ def run(settings: Settings) -> dict[str, int]:
 
     try:
         # ── Step 1: Fetch job postings ───────────────────────────────
-        technologies = [
-            t.strip() for t in settings.job_technologies.split(",") if t.strip()
-        ] or None
-        countries = [
-            c.strip() for c in settings.job_countries.split(",") if c.strip()
-        ] or None
-        from datetime import timedelta
-        since = (
-            datetime.now(timezone.utc) - timedelta(days=settings.job_since_days)
-        ).strftime("%Y-%m-%d")
+        if csv_jobs:
+            title_keywords = [
+                kw for kw in settings.job_query.split() if len(kw) > 2
+            ] or None
+            jobs = load_jobs_csv(csv_jobs, title_keywords=title_keywords)
+        else:
+            technologies = [
+                t.strip() for t in settings.job_technologies.split(",") if t.strip()
+            ] or None
+            countries = [
+                c.strip() for c in settings.job_countries.split(",") if c.strip()
+            ] or None
+            from datetime import timedelta
+            since = (
+                datetime.now(timezone.utc) - timedelta(days=settings.job_since_days)
+            ).strftime("%Y-%m-%d")
 
-        jobs = sumble.find_jobs(
-            query=settings.job_query,
-            technologies=technologies,
-            countries=countries,
-            limit=settings.max_emails_per_run * 3,  # fetch extra for dedup headroom
-            since=since,
-        )
+            jobs = sumble.find_jobs(
+                query=settings.job_query,
+                technologies=technologies,
+                countries=countries,
+                limit=settings.max_emails_per_run * 3,
+                since=since,
+            )
 
         for job in jobs:
             if stats["sent"] >= settings.max_emails_per_run:
@@ -178,10 +204,25 @@ def run(settings: Settings) -> dict[str, int]:
             stats["new_jobs"] += 1
 
             # ── Step 5: Find CEO/founder ─────────────────────────────
-            ceo = sumble.find_ceo(
-                organization_domain=org_domain,
-                organization_id=org_id,
-            )
+            # Check CSV contacts first, then fall back to Sumble API
+            csv_key = (org_domain or org_name or "").lower()
+            csv_contact = csv_contact_map.get(csv_key)
+
+            if csv_contact:
+                ceo = {
+                    "id": f"csv-{csv_key}",
+                    "name": csv_contact.get("name", ""),
+                    "job_title": csv_contact.get("job_title", ""),
+                    "linkedin_url": csv_contact.get("linkedin_url", ""),
+                }
+            elif sumble:
+                ceo = sumble.find_ceo(
+                    organization_domain=org_domain,
+                    organization_id=org_id,
+                )
+            else:
+                logger.info(f"No contact for {org_name} — provide via --csv-contacts")
+                ceo = None
 
             if not ceo:
                 logger.info(f"No executive found for {org_name} ({org_domain}) — skipping")
@@ -444,6 +485,14 @@ def main() -> None:
     parser.add_argument("--query", type=str, help="Job title query (default: from .env)")
     parser.add_argument("--limit", type=int, help="Max outreach per run (default: from .env)")
     parser.add_argument(
+        "--csv", type=str, metavar="FILE",
+        help="Import jobs from CSV file (bypasses Sumble Jobs API)",
+    )
+    parser.add_argument(
+        "--csv-contacts", type=str, metavar="FILE",
+        help="Import contacts from CSV file (bypasses Sumble People API)",
+    )
+    parser.add_argument(
         "--channel",
         choices=["email", "linkedin", "both"],
         help="Outreach channel (default: from .env)",
@@ -472,7 +521,7 @@ def main() -> None:
     if args.linkedin_type:
         settings.linkedin_outreach_type = args.linkedin_type
 
-    run(settings)
+    run(settings, csv_jobs=args.csv, csv_contacts=args.csv_contacts)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ data/*.db
 data/*.db-wal
 data/*.db-shm
 data/linkedin-session/
+!data/sample-*.csv
 logs/*.log
 
 # Python

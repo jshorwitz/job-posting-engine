@@ -84,6 +84,32 @@ OUTREACH_CHANNEL=linkedin        # "linkedin", "email", or "both"
 - **Error screenshots:** Saved to `data/linkedin-session/screenshots/` for debugging
 - **⚠️ LinkedIn ToS:** Browser automation is against LinkedIn's Terms of Service. Use at your own risk. Keep volumes low.
 
+## CSV Import (Recommended)
+
+If the Sumble API is rate-limited (free tier = 500 credits/month), use Sumble's web UI to export job postings as CSV, then feed them into the engine:
+
+```bash
+# 1. Go to sumble.com → search for jobs with "google-ads" technology
+# 2. Click "Export to CSV" → save to data/jobs-export.csv
+
+# 3. Run with CSV input (bypasses Sumble API entirely)
+run-engine --csv data/jobs-export.csv --dry-run
+
+# 4. Optionally provide pre-enriched contacts (bypasses People API too)
+run-engine --csv data/jobs-export.csv --csv-contacts data/contacts.csv --dry-run
+```
+
+**Supported CSV columns** (flexible matching):
+- Jobs: `job_title`, `organization_name`, `organization_domain`, `url`, `location`
+- Contacts: `name`, `job_title`, `linkedin_url`, `organization_name`, `organization_domain`
+
+### Verify Sumble API
+
+```bash
+# Check if your API key works and you have credits
+run-engine --check
+```
+
 ## Credit Costs (Sumble)
 
 | API Call | Credits | Per Run (20 leads) |
@@ -126,6 +152,9 @@ job-posting-engine/
 | Flag | Values | Default | Description |
 |------|--------|---------|-------------|
 | `--dry-run` | — | from `.env` | Log but don't send |
+| `--check` | — | — | Verify Sumble API connection |
+| `--csv` | filepath | — | Import jobs from CSV (bypasses Sumble API) |
+| `--csv-contacts` | filepath | — | Import contacts from CSV (bypasses People API) |
 | `--channel` | `linkedin`, `email`, `both` | `linkedin` | Outreach channel |
 | `--linkedin-type` | `inmail`, `connection` | `inmail` | LinkedIn message type |
 | `--query` | string | `Head of Growth` | Job title search query |
