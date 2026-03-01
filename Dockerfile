@@ -1,5 +1,15 @@
 FROM python:3.11-slim
 
+# Install Doppler CLI
+RUN apt-get update && apt-get install -y curl gnupg && \
+    curl -sLf --retry 3 --tlsv1.2 --proto "=https" \
+      'https://packages.doppler.com/public/cli/gpg.DE2A7741A397C129.key' | \
+      gpg --dearmor -o /usr/share/keyrings/doppler-archive-keyring.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/doppler-archive-keyring.gpg] https://packages.doppler.com/public/cli/deb/debian any-version main" \
+      > /etc/apt/sources.list.d/doppler-cli.list && \
+    apt-get update && apt-get install -y doppler && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
 RUN useradd --create-home appuser
 WORKDIR /home/appuser/app
 
@@ -13,6 +23,5 @@ RUN mkdir -p data logs && chown -R appuser:appuser /home/appuser/app
 
 USER appuser
 
-# Default: run the email outreach pipeline
-# DRY_RUN, OUTREACH_CHANNEL, MAX_EMAILS_PER_RUN configured via env vars
-CMD ["python", "-m", "engine.pipeline", "--channel", "email"]
+# Doppler injects all secrets at runtime via DOPPLER_TOKEN env var
+CMD ["doppler", "run", "--", "python", "-m", "engine.pipeline", "--channel", "email"]
