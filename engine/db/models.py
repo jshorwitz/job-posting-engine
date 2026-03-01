@@ -61,6 +61,8 @@ class Contact(Base):
     company_domain: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     full_name: Mapped[str] = mapped_column(String(255))
     job_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
     linkedin_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
@@ -74,6 +76,7 @@ class EmailLog(Base):
     company_domain: Mapped[str] = mapped_column(String(255), index=True)
     company_name: Mapped[str] = mapped_column(String(255))
     contact_name: Mapped[str] = mapped_column(String(255))
+    contact_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     contact_linkedin: Mapped[str | None] = mapped_column(String(500), nullable=True)
     job_title_hiring: Mapped[str] = mapped_column(String(255))
     email_subject: Mapped[str] = mapped_column(String(500))

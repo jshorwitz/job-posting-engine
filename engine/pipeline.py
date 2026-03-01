@@ -34,6 +34,7 @@ from pathlib import Path
 from engine.ai.email_writer import generate_outreach_email
 from engine.ai.linkedin_writer import generate_connection_note, generate_inmail
 from engine.clients.csv_import import load_contacts_csv, load_jobs_csv
+from engine.clients.hunter import HunterClient
 from engine.clients.slack import post_run_summary
 from engine.clients.sumble import SumbleClient
 from engine.config import Settings
@@ -106,10 +107,19 @@ def run(
             if key:
                 csv_contact_map[key] = c
 
-    # LinkedIn automation (lazy-init only if needed)
-    li_automation = None
+    # Hunter.io for email enrichment (lazy-init only if email channel used)
+    hunter: HunterClient | None = None
     use_linkedin = channel in ("linkedin", "both")
     use_email = channel in ("email", "both")
+
+    if use_email and settings.hunter_api_key:
+        hunter = HunterClient(settings)
+        logger.info("Hunter.io email enrichment enabled")
+    elif use_email:
+        logger.warning("Email channel selected but HUNTER_API_KEY not set — emails won't be sent")
+
+    # LinkedIn automation (lazy-init only if needed)
+    li_automation = None
 
     if use_linkedin and not settings.dry_run:
         from engine.outreach.linkedin_sender import LinkedInAutomation
@@ -234,7 +244,20 @@ def run(
             ceo_linkedin = ceo.get("linkedin_url", "")
             ceo_person_id = str(ceo.get("id", ""))
 
-            # ── Step 6: Upsert contact ───────────────────────────────
+            # ── Step 6: Enrich with email via Hunter.io ─────────────
+            ceo_email: str | None = None
+            email_score: int | None = None
+
+            if hunter and org_domain and ceo_name:
+                hunter_result = hunter.find_email(
+                    domain=org_domain, full_name=ceo_name
+                )
+                if hunter_result:
+                    ceo_email = hunter_result.get("email")
+                    email_score = hunter_result.get("score")
+                time.sleep(0.1)  # rate limit courtesy
+
+            # ── Step 7: Upsert contact ───────────────────────────────
             contact = session.query(Contact).filter_by(
                 sumble_person_id=ceo_person_id
             ).first()
@@ -244,12 +267,18 @@ def run(
                     company_domain=org_domain,
                     full_name=ceo_name,
                     job_title=ceo_title,
+                    email=ceo_email,
+                    email_score=email_score,
                     linkedin_url=ceo_linkedin,
                 )
                 session.add(contact)
                 session.commit()
+            elif ceo_email and not contact.email:
+                contact.email = ceo_email
+                contact.email_score = email_score
+                session.commit()
 
-            # ── Step 7: LinkedIn outreach ────────────────────────────
+            # ── Step 8: LinkedIn outreach ────────────────────────────
             if use_linkedin and ceo_linkedin:
                 _handle_linkedin_outreach(
                     settings=settings,
@@ -264,12 +293,13 @@ def run(
                     logger=logger,
                 )
 
-            # ── Step 8: Email outreach (if channel includes email) ───
+            # ── Step 9: Email outreach (if channel includes email) ───
             if use_email:
                 _handle_email_outreach(
                     settings=settings,
                     session=session,
                     ceo_name=ceo_name,
+                    ceo_email=ceo_email,
                     ceo_linkedin=ceo_linkedin,
                     org_name=org_name,
                     org_domain=org_domain or org_name,
@@ -397,13 +427,15 @@ def _handle_email_outreach(
     settings: Settings,
     session,
     ceo_name: str,
+    ceo_email: str | None,
     ceo_linkedin: str,
     org_name: str,
     org_domain: str,
     job_title: str,
     logger: logging.Logger,
 ) -> None:
-    """Generate email draft and log it (sending requires email enrichment)."""
+    """Generate and send email outreach via SMTP (requires Hunter.io email)."""
+    from engine.outreach.smtp_sender import send_email
 
     if not settings.openai_api_key:
         subject = f"Re: your {job_title} hire"
@@ -423,31 +455,41 @@ def _handle_email_outreach(
             company_domain=org_domain,
         )
 
-    status = EmailStatus.SKIPPED if settings.dry_run else EmailStatus.SENT
-
     if settings.dry_run:
+        status = EmailStatus.SKIPPED
         logger.info(
-            f"[DRY RUN] Email → {org_name} ({org_domain}) | "
-            f"{ceo_name} | LinkedIn: {ceo_linkedin}\n"
-            f"  Subject: {subject}"
+            f"[DRY RUN] Email → {ceo_email or '(no email)'} | "
+            f"{ceo_name} @ {org_name}\n"
+            f"  Subject: {subject}\n"
+            f"  Body: {body[:150]}..."
+        )
+    elif not ceo_email:
+        status = EmailStatus.SKIPPED
+        logger.info(
+            f"No email found for {ceo_name} @ {org_name} — skipping email "
+            f"(LinkedIn: {ceo_linkedin})"
         )
     else:
-        # TODO: When email enrichment is added, send via SMTP here
-        logger.info(
-            f"READY TO SEND | {org_name} | {ceo_name} | "
-            f"LinkedIn: {ceo_linkedin} | Subject: {subject}"
+        success = send_email(
+            settings=settings,
+            to_email=ceo_email,
+            to_name=ceo_name,
+            subject=subject,
+            body=body,
         )
+        status = EmailStatus.SENT if success else EmailStatus.FAILED
 
     log_entry = EmailLog(
         company_domain=org_domain,
         company_name=org_name,
         contact_name=ceo_name,
+        contact_email=ceo_email,
         contact_linkedin=ceo_linkedin,
         job_title_hiring=job_title,
         email_subject=subject,
         email_body_preview=body[:500],
         status=status,
-        sent_at=datetime.now(timezone.utc),
+        sent_at=datetime.now(timezone.utc) if status == EmailStatus.SENT else None,
     )
     session.add(log_entry)
     session.commit()

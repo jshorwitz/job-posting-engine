@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
 
+    # --- Hunter.io (email enrichment) ---
+    hunter_api_key: str = ""
+
     # --- SMTP ---
     smtp_host: str = "smtp.sendgrid.net"
     smtp_port: int = 587
