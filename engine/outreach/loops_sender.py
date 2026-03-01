@@ -107,6 +107,103 @@ def send_email(
     return True
 
 
+def enrich_for_followup(
+    settings: Settings,
+    to_email: str,
+    to_name: str,
+    subject: str,
+    body: str,
+    company_name: str = "",
+    monthly_spend: float = 0,
+    savings_low: float = 0,
+    savings_high: float = 0,
+    spyfu_data: dict | None = None,
+) -> bool:
+    """Upsert follow-up data + SpyFu enrichment to contact properties.
+
+    Pushes 18+ custom properties that map to merge tags in the
+    manually-created 18-step Loop automation (e.g. {{monthlyAdSpend}},
+    {{topCompetitor}}, {{gapKeyword}}).
+
+    No event is fired — the Loop's built-in delay handles timing.
+    """
+    if not settings.loops_api_key:
+        logger.warning("LOOPS_API_KEY not set — cannot enrich for follow-up")
+        return False
+
+    if not body or not body.strip():
+        logger.error(f"Loops: refusing to upsert blank follow-up for {to_email}")
+        return False
+
+    html_body = body.replace("\n", "<br>")
+    if len(html_body) > 500:
+        html_body = html_body[:497] + "..."
+
+    properties: dict = {
+        "followupBody": html_body,
+        "followupSubject": subject,
+        "companyName": company_name,
+    }
+
+    if monthly_spend > 0:
+        properties["monthlyAdSpend"] = f"${monthly_spend:,.0f}"
+        properties["annualAdSpend"] = f"${monthly_spend * 12:,.0f}"
+        properties["estimatedSavings"] = f"${savings_low:,.0f}-${savings_high:,.0f}"
+
+    # SpyFu enrichment — all 18+ data points as Loops contact properties
+    if spyfu_data:
+        d = spyfu_data
+        _set_if(properties, "ppcKeywords", d.get("ppc_keywords"))
+        _set_if(properties, "organicKeywords", d.get("organic_keywords"))
+        _set_if(properties, "paidClicks", _fmt_int(d.get("paid_clicks")))
+        _set_if(properties, "organicClicks", _fmt_int(d.get("organic_clicks")))
+        _set_if(properties, "domainStrength", d.get("domain_strength"))
+        _set_if(properties, "topCompetitor", d.get("top_competitor"))
+        _set_if(properties, "competitorSpend", _fmt_money(d.get("competitor_spend")))
+        _set_if(properties, "topHeadline", d.get("top_headline"))
+        _set_if(properties, "topAdDays", d.get("top_ad_days"))
+        _set_if(properties, "totalAds", d.get("total_ads"))
+        _set_if(properties, "orgClickValue", _fmt_money(d.get("organic_click_value")))
+        _set_if(properties, "seoTop10", d.get("seo_top10"))
+        _set_if(properties, "wasteKeywords", d.get("waste_keywords"))
+        _set_if(properties, "estimatedSavingsSpyfu", _fmt_money(d.get("estimated_savings")))
+
+    success = add_contact(
+        settings=settings,
+        email=to_email,
+        source="job-posting-engine",
+        custom_properties=properties,
+    )
+
+    if success:
+        props_count = len([v for v in properties.values() if v])
+        logger.info(
+            f"Loops: follow-up data upserted for {to_email} | "
+            f"{subject} ({props_count} properties)"
+        )
+    return success
+
+
+def _set_if(props: dict, key: str, value: object) -> None:
+    """Set property only if value is truthy (non-zero, non-empty)."""
+    if value:
+        props[key] = str(value)
+
+
+def _fmt_money(amount: float | int | None) -> str:
+    """Format a dollar amount for display, or empty string."""
+    if not amount:
+        return ""
+    return f"${amount:,.0f}"
+
+
+def _fmt_int(value: int | None) -> str:
+    """Format an integer with commas, or empty string."""
+    if not value:
+        return ""
+    return f"{value:,}"
+
+
 def add_contact(
     settings: Settings,
     email: str,

@@ -50,6 +50,20 @@ class Settings(BaseSettings):
     linkedin_daily_limit: int = 25
     linkedin_outreach_type: str = "inmail"  # "inmail" or "connection"
 
+    # --- SpyFu (competitive PPC/SEO intelligence) ---
+    spyfu_api_id: str = ""
+    spyfu_secret_key: str = ""
+    spyfu_enrich_after_days: int = 1  # enrich contacts N days after initial send
+
+    # --- BuiltWith (tech stack / ad pixel detection) ---
+    builtwith_api_key: str = ""
+
+    # --- Firecrawl (homepage scraping for headline extraction) ---
+    firecrawl_api_key: str = ""
+
+    # --- Follow-up CTA ---
+    calendly_url: str = ""  # e.g. https://calendly.com/yourname/15min
+
     # --- Behaviour ---
     dry_run: bool = True
     max_emails_per_run: int = 20

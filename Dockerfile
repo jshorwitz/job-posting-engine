@@ -24,4 +24,4 @@ RUN mkdir -p data logs && chown -R appuser:appuser /home/appuser/app
 USER appuser
 
 # Doppler injects all secrets at runtime via DOPPLER_TOKEN env var
-CMD ["doppler", "run", "--", "python", "-m", "engine.pipeline", "--channel", "email"]
+CMD ["doppler", "run", "--", "python", "-m", "engine.pipeline", "--enrich", "--export", "loops"]

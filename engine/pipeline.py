@@ -32,6 +32,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from engine.ai.email_writer import generate_outreach_email
+from engine.ai.followup_writer import generate_followup_email
 from engine.ai.linkedin_writer import generate_connection_note, generate_inmail
 from engine.clients.csv_import import load_contacts_csv, load_jobs_csv
 from engine.clients.hunter import HunterClient
@@ -43,6 +44,8 @@ from engine.db.models import (
     Contact,
     EmailLog,
     EmailStatus,
+    FollowUpLog,
+    FollowUpStatus,
     JobPosting,
     LinkedInOutreach,
     LinkedInOutreachStatus,
@@ -550,6 +553,243 @@ def _handle_email_outreach(
 RATE_LIMIT_DELAY = 0.15
 
 
+# ------------------------------------------------------------------
+# Follow-up pipeline
+# ------------------------------------------------------------------
+
+
+def run_followups(settings: Settings) -> dict[str, int]:
+    """Enrich contacts with SpyFu PPC/SEO data for the Loop's follow-up step.
+
+    The "Cold Job Posting Outreach" Loop has a built-in wait step (3-5 days)
+    followed by a second email. This function upserts followupBody,
+    followupSubject, monthlyAdSpend, estimatedSavings, and 18+ SpyFu data
+    points to each contact so the template variables render correctly.
+
+    For leads without SpyFu data, a generic follow-up is generated instead.
+
+    Run this daily so contacts are enriched before the wait step fires.
+    """
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+
+    logging.basicConfig(
+        level=getattr(logging, settings.log_level.upper(), logging.INFO),
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_dir / "engine.log"),
+        ],
+    )
+    logger = logging.getLogger(__name__)
+
+    logger.info("=" * 60)
+    logger.info(f"{LOG_PREFIX} Follow-up enrichment starting")
+    logger.info(
+        f"  enrich_after_days={settings.spyfu_enrich_after_days}  "
+        f"dry_run={settings.dry_run}  max={settings.max_emails_per_run}"
+    )
+    logger.info("=" * 60)
+
+    SessionFactory = init_db(settings.database_path)
+    session = SessionFactory()
+
+    stats = {"eligible": 0, "enriched": 0, "sent": 0, "skipped": 0, "failed": 0}
+
+    # Create run log
+    run_log = RunLog(
+        channel="followup",
+        source="SpyFu",
+        query=f"followup (enrich_after={settings.spyfu_enrich_after_days}d)",
+        dry_run=str(settings.dry_run).lower(),
+    )
+    session.add(run_log)
+    session.commit()
+
+    # Init SpyFu client (optional — generic follow-ups work without it)
+    spyfu = None
+    if settings.spyfu_api_id and settings.spyfu_secret_key:
+        from engine.clients.spyfu import SpyFuClient
+        spyfu = SpyFuClient(settings)
+        logger.info("SpyFu enrichment enabled")
+    else:
+        logger.info("No SPYFU_API_ID/SECRET_KEY — will use generic follow-ups for all leads")
+
+    try:
+        from datetime import timedelta
+        from engine.ai.followup_writer import generate_generic_followup
+
+        cutoff = datetime.now(timezone.utc) - timedelta(
+            days=settings.spyfu_enrich_after_days
+        )
+
+        eligible_emails = (
+            session.query(EmailLog)
+            .filter(
+                EmailLog.status == EmailStatus.SENT,
+                EmailLog.sent_at <= cutoff,
+                EmailLog.contact_email.isnot(None),
+                EmailLog.company_domain.isnot(None),
+            )
+            .all()
+        )
+
+        # Filter out already enriched
+        already_followed = {
+            row.email_log_id
+            for row in session.query(FollowUpLog.email_log_id).all()
+        }
+        eligible_emails = [
+            e for e in eligible_emails if e.id not in already_followed
+        ]
+
+        stats["eligible"] = len(eligible_emails)
+        logger.info(f"Found {len(eligible_emails)} leads to enrich for follow-up")
+
+        for email_log in eligible_emails:
+            if stats["sent"] + stats["skipped"] >= settings.max_emails_per_run:
+                logger.info("Max per run reached — stopping.")
+                break
+
+            domain = email_log.company_domain
+            company = email_log.company_name
+            contact = email_log.contact_name
+            contact_email = email_log.contact_email
+            job_title = email_log.job_title_hiring
+
+            logger.info(f"Enriching: {contact} @ {company} ({domain})")
+
+            # Try SpyFu if available
+            ad_spend = None
+            monthly_spend = 0.0
+            savings_low = 0.0
+            savings_high = 0.0
+
+            if spyfu and domain:
+                ad_spend = spyfu.enrich_domain(domain)
+
+            if ad_spend and ad_spend.get("estimated_monthly_spend", 0) >= 100:
+                # Has real ad spend data — generate data-driven follow-up
+                stats["enriched"] += 1
+                monthly_spend = ad_spend["estimated_monthly_spend"]
+                savings_low = monthly_spend * 0.15
+                savings_high = monthly_spend * 0.25
+
+                subject, body = generate_followup_email(
+                    settings=settings,
+                    ceo_name=contact,
+                    company_name=company,
+                    job_title_hiring=job_title,
+                    ad_spend=ad_spend,
+                    company_domain=domain,
+                )
+            else:
+                # No ad spend data — generate generic follow-up
+                subject, body = generate_generic_followup(
+                    settings=settings,
+                    ceo_name=contact,
+                    company_name=company,
+                    job_title_hiring=job_title,
+                    company_domain=domain,
+                )
+
+            # Upsert to Loops contact properties (all SpyFu enrichment data)
+            if settings.dry_run:
+                spend_info = f"${monthly_spend:,.0f}/mo" if monthly_spend else "no data"
+                logger.info(
+                    f"[DRY RUN] Enrich → {contact_email} | {contact} @ {company}\n"
+                    f"  Ad spend: {spend_info}\n"
+                    f"  Subject: {subject}\n"
+                    f"  Body: {body[:150]}..."
+                )
+                fu_status = FollowUpStatus.SKIPPED
+            elif settings.loops_api_key:
+                from engine.outreach.loops_sender import enrich_for_followup
+
+                success = enrich_for_followup(
+                    settings=settings,
+                    to_email=contact_email,
+                    to_name=contact,
+                    subject=subject,
+                    body=body,
+                    company_name=company,
+                    monthly_spend=monthly_spend,
+                    savings_low=savings_low,
+                    savings_high=savings_high,
+                    spyfu_data=ad_spend,
+                )
+                fu_status = FollowUpStatus.SENT if success else FollowUpStatus.FAILED
+            else:
+                logger.warning("LOOPS_API_KEY not set — cannot enrich contacts")
+                fu_status = FollowUpStatus.SKIPPED
+
+            # Log
+            followup = FollowUpLog(
+                email_log_id=email_log.id,
+                company_domain=domain,
+                company_name=company,
+                contact_name=contact,
+                contact_email=contact_email,
+                estimated_monthly_spend=monthly_spend if monthly_spend else None,
+                estimated_annual_spend=(
+                    ad_spend.get("annual_spend") if ad_spend else None
+                ),
+                ppc_keywords=ad_spend.get("ppc_keywords") if ad_spend else None,
+                organic_keywords=ad_spend.get("organic_keywords") if ad_spend else None,
+                domain_strength=ad_spend.get("domain_strength") if ad_spend else None,
+                top_competitor=ad_spend.get("top_competitor") if ad_spend else None,
+                total_ads=ad_spend.get("total_ads") if ad_spend else None,
+                email_subject=subject,
+                email_body_preview=body[:500],
+                status=fu_status,
+                sent_at=(
+                    datetime.now(timezone.utc)
+                    if fu_status == FollowUpStatus.SENT
+                    else None
+                ),
+            )
+            session.add(followup)
+            session.commit()
+
+            if fu_status == FollowUpStatus.SENT:
+                stats["sent"] += 1
+            elif fu_status == FollowUpStatus.FAILED:
+                stats["failed"] += 1
+            else:
+                stats["skipped"] += 1
+
+            time.sleep(RATE_LIMIT_DELAY)
+
+    except Exception as exc:
+        logger.exception(f"{LOG_PREFIX} Follow-up enrichment error: {exc}")
+    finally:
+        run_log.followups_sent = stats["sent"]
+        run_log.followups_skipped = stats["skipped"]
+        run_log.total_processed = stats["eligible"]
+        run_log.total_failed = stats["failed"]
+        run_log.finished_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+    logger.info("=" * 60)
+    logger.info(
+        f"{LOG_PREFIX} Enrichment complete — "
+        f"eligible={stats['eligible']} enriched={stats['enriched']} "
+        f"upserted={stats['sent']} skipped={stats['skipped']} failed={stats['failed']}"
+    )
+    logger.info("=" * 60)
+
+    post_run_summary(
+        webhook_url=settings.slack_webhook_url,
+        sent=stats["sent"],
+        skipped=stats["skipped"],
+        failed=stats["failed"],
+        sample_companies=[],
+    )
+
+    return stats
+
+
 def check_sumble(settings: Settings) -> None:
     """Verify the Sumble API connection and print account status."""
     import json as _json
@@ -571,11 +811,237 @@ def check_sumble(settings: Settings) -> None:
     print(_json.dumps(result, indent=2, default=str))
 
 
+def run_enrichment(
+    settings: Settings,
+    *,
+    output_path: str | None = None,
+    export_format: str | None = None,
+) -> dict[str, int]:
+    """Enrich all eligible leads with SpyFu + BuiltWith + Firecrawl + AI.
+
+    Reads sent email logs from the DB, enriches each lead with all data
+    sources, and optionally exports to Instantly CSV format.
+
+    Args:
+        settings:       App settings.
+        output_path:    Optional CSV output path (default: auto-generated).
+        export_format:  "instantly" to export CSV, or None to skip export.
+
+    Returns:
+        Stats dict with eligible, enriched, exported, failed counts.
+    """
+    from engine.enrichment import enrich_lead
+
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+    logging.basicConfig(
+        level=getattr(logging, settings.log_level.upper(), logging.INFO),
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        handlers=[
+            logging.StreamHandler(sys.stdout),
+            logging.FileHandler(log_dir / "engine.log"),
+        ],
+    )
+    logger = logging.getLogger(__name__)
+
+    logger.info("=" * 60)
+    logger.info(f"{LOG_PREFIX} Multi-source enrichment starting")
+    logger.info(
+        f"  dry_run={settings.dry_run}  max={settings.max_emails_per_run}  "
+        f"export={export_format or 'none'}"
+    )
+    logger.info("=" * 60)
+
+    SessionFactory = init_db(settings.database_path)
+    session = SessionFactory()
+    stats = {"eligible": 0, "enriched": 0, "exported": 0, "failed": 0, "skipped": 0}
+    enriched_leads: list[dict] = []
+
+    # Create run log
+    run_log = RunLog(
+        channel="enrichment",
+        source="SpyFu+BuiltWith+Firecrawl",
+        query=f"enrich (export={export_format or 'none'})",
+        dry_run=str(settings.dry_run).lower(),
+    )
+    session.add(run_log)
+    session.commit()
+
+    try:
+        # Find all sent emails that haven't been enriched yet
+        already_enriched = {
+            row.email_log_id
+            for row in session.query(FollowUpLog.email_log_id).all()
+        }
+
+        eligible_emails = (
+            session.query(EmailLog)
+            .filter(
+                EmailLog.status == EmailStatus.SENT,
+                EmailLog.contact_email.isnot(None),
+                EmailLog.company_domain.isnot(None),
+            )
+            .all()
+        )
+        eligible_emails = [
+            e for e in eligible_emails if e.id not in already_enriched
+        ]
+
+        stats["eligible"] = len(eligible_emails)
+        logger.info(f"Found {len(eligible_emails)} leads to enrich")
+
+        for email_log in eligible_emails:
+            if stats["enriched"] + stats["skipped"] >= settings.max_emails_per_run:
+                logger.info("Max per run reached — stopping.")
+                break
+
+            domain = email_log.company_domain
+            company = email_log.company_name
+            contact = email_log.contact_name
+            contact_email = email_log.contact_email
+
+            logger.info(f"Enriching: {contact} @ {company} ({domain})")
+
+            if settings.dry_run:
+                logger.info(f"  [DRY RUN] Would enrich {domain} with all sources")
+                stats["skipped"] += 1
+                continue
+
+            try:
+                lead_data = enrich_lead(
+                    settings=settings,
+                    domain=domain,
+                    company_name=company,
+                    contact_name=contact,
+                    job_title_hiring=email_log.job_title_hiring,
+                )
+                lead_data["contact_email"] = contact_email
+                lead_data["contact_title"] = email_log.job_title_hiring
+
+                enriched_leads.append(lead_data)
+                stats["enriched"] += 1
+
+                # Log to DB
+                followup = FollowUpLog(
+                    email_log_id=email_log.id,
+                    company_domain=domain,
+                    company_name=company,
+                    contact_name=contact,
+                    contact_email=contact_email,
+                    estimated_monthly_spend=lead_data.get("spyfu_monthly_spend"),
+                    estimated_annual_spend=lead_data.get("spyfu_annual_spend"),
+                    ppc_keywords=lead_data.get("spyfu_ppc_keywords"),
+                    organic_keywords=lead_data.get("spyfu_organic_keywords"),
+                    domain_strength=lead_data.get("spyfu_domain_strength"),
+                    top_competitor=lead_data.get("spyfu_top_competitor"),
+                    total_ads=lead_data.get("spyfu_total_ads"),
+                    status=FollowUpStatus.ENRICHED,
+                )
+                session.add(followup)
+                session.commit()
+
+                logger.info(
+                    f"  Enriched: spend=${lead_data.get('spyfu_monthly_spend', 0):,.0f}/mo, "
+                    f"pixels={lead_data.get('builtwith_pixel_count', 0)}, "
+                    f"headline=\"{lead_data.get('firecrawl_headline', '')[:40]}\""
+                )
+
+            except Exception as exc:
+                logger.error(f"  Enrichment failed for {domain}: {exc}")
+                stats["failed"] += 1
+
+            time.sleep(1)  # overall pacing between leads
+
+    except Exception as exc:
+        logger.exception(f"{LOG_PREFIX} Enrichment error: {exc}")
+    finally:
+        run_log.total_processed = stats["enriched"]
+        run_log.total_failed = stats["failed"]
+        run_log.finished_at = datetime.now(timezone.utc)
+        session.commit()
+        session.close()
+
+    # Export enriched leads
+    if export_format == "loops" and enriched_leads:
+        from engine.outreach.loops_sender import add_contact
+
+        pushed = 0
+        for lead in enriched_leads:
+            email = lead.get("contact_email", "")
+            if not email:
+                continue
+            full_name = lead.get("contact_name", "")
+            parts = full_name.split() if full_name else []
+            first_name = parts[0] if parts else ""
+            last_name = " ".join(parts[1:]) if len(parts) > 1 else ""
+
+            # Map all enrichment fields to Loops contact properties
+            props: dict[str, str] = {}
+            for key, val in lead.items():
+                if key.startswith(("spyfu_", "builtwith_", "firecrawl_", "ai_", "settings_")):
+                    # Convert lists to comma-separated strings
+                    if isinstance(val, list):
+                        props[key] = ", ".join(str(v) for v in val)
+                    elif val:
+                        props[key] = str(val)
+            props["jobTitleHiring"] = lead.get("job_title_hiring", "")
+
+            ok = add_contact(
+                settings=settings,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                company=lead.get("company_name", ""),
+                source="job-posting-engine-enrichment",
+                custom_properties=props,
+            )
+            if ok:
+                pushed += 1
+
+        stats["exported"] = pushed
+        logger.info(f"Pushed {pushed} enriched leads to Loops.so")
+
+    elif export_format == "instantly" and enriched_leads:
+        from engine.export.instantly_csv import export_csv
+
+        csv_path = export_csv(enriched_leads, output_path=output_path)
+        stats["exported"] = len(enriched_leads)
+        logger.info(f"Exported {len(enriched_leads)} leads to {csv_path}")
+
+    logger.info("=" * 60)
+    logger.info(
+        f"{LOG_PREFIX} Enrichment complete — "
+        f"eligible={stats['eligible']} enriched={stats['enriched']} "
+        f"exported={stats['exported']} failed={stats['failed']}"
+    )
+    logger.info("=" * 60)
+
+    return stats
+
+
 def main() -> None:
     """CLI entry point."""
     parser = argparse.ArgumentParser(description="Job Posting Growth Engine")
     parser.add_argument("--dry-run", action="store_true", help="Log but don't send")
     parser.add_argument("--check", action="store_true", help="Verify Sumble API connection")
+    parser.add_argument(
+        "--followups", action="store_true",
+        help="Run follow-up pipeline (SpyFu enrichment + Day 3-5 emails)",
+    )
+    parser.add_argument(
+        "--enrich", action="store_true",
+        help="Run multi-source enrichment (SpyFu + BuiltWith + Firecrawl + AI)",
+    )
+    parser.add_argument(
+        "--export",
+        choices=["loops", "instantly"],
+        metavar="FORMAT",
+        help="Export enriched leads (loops = push to Loops.so, instantly = CSV)",
+    )
+    parser.add_argument(
+        "--output", type=str, metavar="FILE",
+        help="Output file path for export (default: auto-generated in data/)",
+    )
     parser.add_argument("--query", type=str, help="Job title query (default: from .env)")
     parser.add_argument("--limit", type=int, help="Max outreach per run (default: from .env)")
     parser.add_argument(
@@ -606,10 +1072,24 @@ def main() -> None:
 
     if args.dry_run:
         settings.dry_run = True
-    if args.query:
-        settings.job_query = args.query
+
     if args.limit:
         settings.max_emails_per_run = args.limit
+
+    if args.enrich:
+        run_enrichment(
+            settings,
+            output_path=args.output,
+            export_format=args.export,
+        )
+        return
+
+    if args.followups:
+        run_followups(settings)
+        return
+
+    if args.query:
+        settings.job_query = args.query
     if args.channel:
         settings.outreach_channel = args.channel
     if args.linkedin_type:

@@ -5,7 +5,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Integer, String, Text, func
+from sqlalchemy import DateTime, Enum, Float, Integer, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -18,6 +18,15 @@ class EmailStatus(str, enum.Enum):
     SENT = "sent"
     FAILED = "failed"
     SKIPPED = "skipped"
+
+
+class FollowUpStatus(str, enum.Enum):
+    PENDING = "pending"       # eligible but not yet sent
+    ENRICHED = "enriched"     # SpyFu data fetched
+    SENT = "sent"
+    FAILED = "failed"
+    SKIPPED = "skipped"       # no SpyFu data or ineligible
+    NO_SPEND = "no_spend"     # SpyFu returned no data for domain
 
 
 class OutreachType(str, enum.Enum):
@@ -130,4 +139,38 @@ class RunLog(Base):
     linkedin_skipped: Mapped[int] = mapped_column(Integer, default=0)
     total_processed: Mapped[int] = mapped_column(Integer, default=0)
     total_failed: Mapped[int] = mapped_column(Integer, default=0)
+    followups_sent: Mapped[int] = mapped_column(Integer, default=0)
+    followups_skipped: Mapped[int] = mapped_column(Integer, default=0)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class FollowUpLog(Base):
+    """Tracks follow-up emails enriched with SpyFu PPC/SEO data."""
+
+    __tablename__ = "followup_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    email_log_id: Mapped[int] = mapped_column(Integer, index=True)
+    company_domain: Mapped[str] = mapped_column(String(255), index=True)
+    company_name: Mapped[str] = mapped_column(String(255))
+    contact_name: Mapped[str] = mapped_column(String(255))
+    contact_email: Mapped[str] = mapped_column(String(255))
+
+    # SpyFu enrichment
+    estimated_monthly_spend: Mapped[float | None] = mapped_column(Float, nullable=True)
+    estimated_annual_spend: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ppc_keywords: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    organic_keywords: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    domain_strength: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    top_competitor: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    total_ads: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Follow-up email
+    email_subject: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    email_body_preview: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[FollowUpStatus] = mapped_column(
+        Enum(FollowUpStatus), default=FollowUpStatus.PENDING
+    )
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
