@@ -13,6 +13,7 @@ Credit costs:
 from __future__ import annotations
 
 import logging
+import random
 import time
 from typing import Any
 
@@ -243,12 +244,13 @@ class SumbleClient:
             logger.error("Sumble: insufficient credits — stopping")
             return None
         if resp.status_code == 429:
-            # Exponential backoff — account-level rate limits may need
-            # much longer waits than transient burst limits.
-            waits = [10, 30, 60, 120]
-            for attempt, wait in enumerate(waits, 1):
+            # Exponential backoff with jitter — keeps total wait under 60s
+            waits = [5, 10, 20]
+            for attempt, base_wait in enumerate(waits, 1):
+                jitter = random.uniform(0, base_wait * 0.3)
+                wait = base_wait + jitter
                 logger.warning(
-                    f"Sumble: rate limited, waiting {wait}s "
+                    f"Sumble: rate limited, waiting {wait:.0f}s "
                     f"(attempt {attempt}/{len(waits)})..."
                 )
                 time.sleep(wait)
@@ -260,10 +262,9 @@ class SumbleClient:
                     logger.error(f"Sumble retry {attempt} failed: {e}")
                     return None
             if resp.status_code == 429:
-                logger.error(
-                    "Sumble: still rate limited after retries. "
-                    "Check your account at https://sumble.com/account/api-keys — "
-                    "you may need to wait or upgrade your plan."
+                logger.warning(
+                    "Sumble: still rate limited after retries — skipping this run. "
+                    "Will retry on next cron execution."
                 )
                 return None
             if resp.status_code != 200:

@@ -107,6 +107,9 @@ def _parse_subject_body(raw: str) -> tuple[str, str]:
         elif line.strip().upper().startswith("BODY:"):
             in_body = True
         elif in_body:
+            # Strip leaked "subject:" lines from the body
+            if line.strip().lower().startswith("subject:"):
+                continue
             body_lines.append(line)
 
     return subject, "\n".join(body_lines).strip()

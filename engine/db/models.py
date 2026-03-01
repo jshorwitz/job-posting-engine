@@ -109,3 +109,25 @@ class LinkedInOutreach(Base):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class RunLog(Base):
+    """Tracks each pipeline execution for monitoring and debugging."""
+
+    __tablename__ = "run_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    channel: Mapped[str] = mapped_column(String(20))
+    source: Mapped[str] = mapped_column(String(20))
+    query: Mapped[str] = mapped_column(String(255))
+    dry_run: Mapped[str] = mapped_column(String(5), default="false")
+    new_jobs: Mapped[int] = mapped_column(Integer, default=0)
+    emails_sent: Mapped[int] = mapped_column(Integer, default=0)
+    emails_skipped: Mapped[int] = mapped_column(Integer, default=0)
+    linkedin_sent: Mapped[int] = mapped_column(Integer, default=0)
+    linkedin_skipped: Mapped[int] = mapped_column(Integer, default=0)
+    total_processed: Mapped[int] = mapped_column(Integer, default=0)
+    total_failed: Mapped[int] = mapped_column(Integer, default=0)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)

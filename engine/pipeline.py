@@ -47,6 +47,7 @@ from engine.db.models import (
     LinkedInOutreach,
     LinkedInOutreachStatus,
     OutreachType,
+    RunLog,
 )
 
 LOG_PREFIX = "[JobPostingEngine]"
@@ -96,8 +97,26 @@ def run(
     SessionFactory = init_db(settings.database_path)
     session = SessionFactory()
     sumble = SumbleClient(settings) if not csv_jobs else None
-    stats = {"sent": 0, "skipped": 0, "failed": 0, "new_jobs": 0}
+    stats = {
+        "new_jobs": 0,
+        "processed": 0,
+        "emails_sent": 0,
+        "emails_skipped": 0,
+        "linkedin_sent": 0,
+        "linkedin_skipped": 0,
+        "failed": 0,
+    }
     contacted_companies: list[str] = []
+
+    # Create run log entry
+    run_log = RunLog(
+        channel=channel,
+        source=source,
+        query=settings.job_query,
+        dry_run=str(settings.dry_run).lower(),
+    )
+    session.add(run_log)
+    session.commit()
 
     # Pre-load contacts from CSV if provided (bypasses Sumble People API)
     csv_contact_map: dict[str, dict] = {}
@@ -112,7 +131,7 @@ def run(
     use_linkedin = channel in ("linkedin", "both")
     use_email = channel in ("email", "both")
 
-    if use_email and settings.loops_api_key and not settings.loops_mailing_list_id:
+    if use_email and settings.loops_api_key and not settings.loops_mailing_list_id and not settings.dry_run:
         logger.error(
             "LOOPS_MAILING_LIST_ID not set — Loop automation won't trigger. "
             "Set it from Loops → Audience → Lists → your list → Settings."
@@ -160,7 +179,7 @@ def run(
             )
 
         for job in jobs:
-            if stats["sent"] >= settings.max_emails_per_run:
+            if stats["processed"] >= settings.max_emails_per_run:
                 logger.info("Max per run reached — stopping.")
                 break
 
@@ -176,7 +195,6 @@ def run(
             # ── Step 2: Deduplicate by job ID ────────────────────────
             if session.query(JobPosting).filter_by(sumble_job_id=job_id).first():
                 logger.debug(f"Already seen job {job_id} @ {org_name}")
-                stats["skipped"] += 1
                 continue
 
             # ── Step 3: Deduplicate by company domain ────────────────
@@ -202,7 +220,6 @@ def run(
                 )
                 if email_dup or li_dup:
                     logger.debug(f"Already contacted {org_domain} — skipping")
-                    stats["skipped"] += 1
                     continue
 
             # ── Step 4: Persist job posting ──────────────────────────
@@ -243,7 +260,7 @@ def run(
 
             if not ceo:
                 logger.info(f"No executive found for {org_name} ({org_domain}) — skipping")
-                stats["skipped"] += 1
+                stats["failed"] += 1
                 continue
 
             ceo_name = ceo.get("name", "")
@@ -287,7 +304,7 @@ def run(
 
             # ── Step 8: LinkedIn outreach ────────────────────────────
             if use_linkedin and ceo_linkedin:
-                _handle_linkedin_outreach(
+                li_ok = _handle_linkedin_outreach(
                     settings=settings,
                     session=session,
                     li_automation=li_automation,
@@ -299,10 +316,14 @@ def run(
                     li_type=li_type,
                     logger=logger,
                 )
+                if li_ok:
+                    stats["linkedin_sent"] += 1
+                else:
+                    stats["linkedin_skipped"] += 1
 
             # ── Step 9: Email outreach (if channel includes email) ───
             if use_email:
-                _handle_email_outreach(
+                email_ok = _handle_email_outreach(
                     settings=settings,
                     session=session,
                     ceo_name=ceo_name,
@@ -313,8 +334,12 @@ def run(
                     job_title=job_title,
                     logger=logger,
                 )
+                if email_ok:
+                    stats["emails_sent"] += 1
+                else:
+                    stats["emails_skipped"] += 1
 
-            stats["sent"] += 1
+            stats["processed"] += 1
             contacted_companies.append(org_name)
 
             # Rate limit courtesy
@@ -327,19 +352,22 @@ def run(
             li_automation.close()
         session.close()
 
+    total_sent = stats["emails_sent"] + stats["linkedin_sent"]
+
     logger.info("=" * 60)
     logger.info(
         f"{LOG_PREFIX} Complete — "
-        f"new_jobs={stats['new_jobs']} sent={stats['sent']} "
-        f"skipped={stats['skipped']} failed={stats['failed']}"
+        f"new_jobs={stats['new_jobs']} processed={stats['processed']} "
+        f"emails_sent={stats['emails_sent']} linkedin_sent={stats['linkedin_sent']} "
+        f"failed={stats['failed']}"
     )
     logger.info("=" * 60)
 
     # ── Slack summary ────────────────────────────────────────────────
     post_run_summary(
         webhook_url=settings.slack_webhook_url,
-        sent=stats["sent"],
-        skipped=stats["skipped"],
+        sent=total_sent,
+        skipped=stats["emails_skipped"] + stats["linkedin_skipped"],
         failed=stats["failed"],
         sample_companies=contacted_companies,
     )
@@ -364,8 +392,8 @@ def _handle_linkedin_outreach(
     job_title: str,
     li_type: str,
     logger: logging.Logger,
-) -> None:
-    """Generate and send LinkedIn outreach (InMail or connection request)."""
+) -> bool:
+    """Generate and send LinkedIn outreach. Returns True if sent."""
 
     if li_type == "connection":
         outreach_type = OutreachType.LINKEDIN_CONNECTION
@@ -427,6 +455,7 @@ def _handle_linkedin_outreach(
     )
     session.add(log_entry)
     session.commit()
+    return status == LinkedInOutreachStatus.SENT
 
 
 def _handle_email_outreach(
@@ -440,8 +469,8 @@ def _handle_email_outreach(
     org_domain: str,
     job_title: str,
     logger: logging.Logger,
-) -> None:
-    """Generate and send email outreach via Loops.so (or SMTP fallback)."""
+) -> bool:
+    """Generate and send email outreach. Returns True if sent."""
 
     if not settings.openai_api_key:
         subject = f"Re: your {job_title} hire"
@@ -515,6 +544,7 @@ def _handle_email_outreach(
     )
     session.add(log_entry)
     session.commit()
+    return status == EmailStatus.SENT
 
 
 RATE_LIMIT_DELAY = 0.15
