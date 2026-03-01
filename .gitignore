@@ -1,0 +1,22 @@
+# Secrets
+.env
+
+# Runtime data
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/linkedin-session/
+logs/*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+dist/
+*.egg-info/
+
+# Tooling
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/

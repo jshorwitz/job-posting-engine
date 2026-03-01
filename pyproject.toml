@@ -1,0 +1,45 @@
+[project]
+name = "job-posting-growth-engine"
+version = "0.1.0"
+description = "Monitors Sumble.com for Head of Growth hires, finds the CEO, and sends personalized outreach via OpenAI + SMTP."
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27.0",
+    "sqlalchemy>=2.0.0",
+    "openai>=1.30.0",
+    "pydantic-settings>=2.1.0",
+    "python-dotenv>=1.0.1",
+    "playwright>=1.49.0",
+]
+
+[project.scripts]
+run-engine = "engine.pipeline:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-mock>=3.12.0",
+    "ruff>=0.4.0",
+    "mypy>=1.10.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["engine"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
