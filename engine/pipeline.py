@@ -976,14 +976,38 @@ def run_enrichment(
             last_name = " ".join(parts[1:]) if len(parts) > 1 else ""
 
             # Map all enrichment fields to Loops contact properties
+            # Format monetary/numeric values for display in email templates
             props: dict[str, str] = {}
+
+            # Fields that should be formatted as $X,XXX
+            MONEY_FIELDS = {
+                "spyfu_monthly_spend", "spyfu_annual_spend",
+                "spyfu_competitor_spend", "spyfu_organic_click_value",
+                "spyfu_gap_keyword_cpc",
+            }
+            # Fields that should be formatted with commas (large integers)
+            COMMA_FIELDS = {
+                "spyfu_ppc_keywords", "spyfu_organic_keywords",
+                "spyfu_paid_clicks", "spyfu_organic_clicks",
+                "spyfu_shared_keywords",
+            }
+
             for key, val in lead.items():
                 if key.startswith(("spyfu_", "builtwith_", "firecrawl_", "ai_", "settings_")):
-                    # Convert lists to comma-separated strings
                     if isinstance(val, list):
                         props[key] = ", ".join(str(v) for v in val)
+                    elif key in MONEY_FIELDS and isinstance(val, (int, float)) and val:
+                        props[key] = f"${val:,.0f}" if val >= 1 else f"${val:.2f}"
+                    elif key in COMMA_FIELDS and isinstance(val, (int, float)) and val:
+                        props[key] = f"{int(val):,}"
                     elif val:
                         props[key] = str(val)
+
+            # Computed field: estimated savings (20% of monthly spend)
+            monthly = lead.get("spyfu_monthly_spend", 0)
+            if monthly and isinstance(monthly, (int, float)) and monthly > 0:
+                props["spyfu_estimated_savings"] = f"${monthly * 0.20:,.0f}"
+
             props["jobTitleHiring"] = lead.get("job_title_hiring", "")
 
             ok = add_contact(
