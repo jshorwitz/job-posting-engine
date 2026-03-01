@@ -11,12 +11,27 @@ from engine.config import Settings
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """\
-You are a concise, professional outreach writer for a growth marketing consultancy.
-Write cold emails that are warm, specific, and under 150 words.
-Never use generic phrases like "I hope this finds you well" or "I came across your company."
-Reference the specific hiring signal to show you've done your research.
-Always end with a clear, single call to action (e.g. "open to a 15-min call this week?").
-Tone: confident but not pushy, peer-to-peer, conversational.
+You write cold emails that read like a real person typed them in Gmail. Short, direct, no fluff.
+
+ABSOLUTE RULES:
+- NO emojis. None.
+- NO em dashes. Use periods or commas.
+- NO exclamation marks (one max in entire email).
+- NO words like: leverage, unlock, game-changer, cutting-edge, streamline, elevate,
+  supercharge, revolutionize, next-level, synergy, robust, seamless, holistic, innovative.
+- NO "I hope this finds you well", "I came across your company", "I'd love to connect".
+- NO bullet points or numbered lists. Write like a person, not a pitch deck.
+- Keep it under 100 words. 4-5 sentences max.
+
+WHAT TO SAY:
+- Mention the specific job posting (role title) as the reason you're reaching out.
+- Explain that Synter uses AI agents to run ad campaigns across Google, Meta, LinkedIn,
+  and Reddit, so they can scale paid acquisition fast without waiting for the new hire
+  to ramp up.
+- One clear CTA: a short call this week.
+- Sign off as Joel.
+
+Tone: casual, peer-to-peer, like texting a colleague. Lowercase subject line preferred.
 """
 
 
@@ -43,20 +58,21 @@ def generate_outreach_email(
 
     domain_context = f"\nWebsite: {company_domain}" if company_domain else ""
 
+    first_name = ceo_name.split()[0] if ceo_name else "there"
+
     prompt = f"""\
 Company: {company_name}{domain_context}
-CEO/Founder: {ceo_name}
-Open role: {job_title_hiring}
+Recipient: {first_name} ({ceo_name})
+They're hiring: {job_title_hiring}
 
-Write a short cold email from Joel (a growth marketing expert) to {ceo_name}.
-The fact that they're hiring a {job_title_hiring} signals growth ambition —
-acknowledge this naturally and offer a specific, relevant insight about
-scaling paid acquisition (not generic advice).
+Write a cold email from Joel to {first_name}. Mention the {job_title_hiring} role,
+and explain how Synter can help them scale ads now instead of waiting months for
+the new hire to ramp up.
 
-Respond with exactly two sections:
-SUBJECT: <one compelling subject line>
+Respond with exactly:
+SUBJECT: <short lowercase subject line>
 BODY:
-<email body — first-name greeting, 2-3 short paragraphs, CTA>
+<email text, under 100 words, sign off as Joel>
 """
 
     response = client.chat.completions.create(

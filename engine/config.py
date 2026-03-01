@@ -23,7 +23,8 @@ class Settings(BaseSettings):
 
     # --- Loops.so (email sending) ---
     loops_api_key: str = ""
-    loops_transactional_id: str = ""
+    loops_transactional_id: str = ""  # deprecated — kept for backwards compat
+    loops_mailing_list_id: str = ""
 
     # --- SMTP (fallback — used only if Loops not configured) ---
     smtp_host: str = "smtp.sendgrid.net"

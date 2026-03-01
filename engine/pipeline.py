@@ -112,6 +112,13 @@ def run(
     use_linkedin = channel in ("linkedin", "both")
     use_email = channel in ("email", "both")
 
+    if use_email and settings.loops_api_key and not settings.loops_mailing_list_id:
+        logger.error(
+            "LOOPS_MAILING_LIST_ID not set — Loop automation won't trigger. "
+            "Set it from Loops → Audience → Lists → your list → Settings."
+        )
+        return stats
+
     if use_email and settings.hunter_api_key:
         hunter = HunterClient(settings)
         logger.info("Hunter.io email enrichment enabled")
@@ -472,15 +479,7 @@ def _handle_email_outreach(
         # Try Loops first, fall back to SMTP
         if settings.loops_api_key:
             from engine.outreach.loops_sender import send_email as loops_send
-            from engine.outreach.loops_sender import add_contact
 
-            add_contact(
-                settings=settings,
-                email=ceo_email,
-                first_name=ceo_name.split()[0] if ceo_name else "",
-                last_name=" ".join(ceo_name.split()[1:]) if ceo_name else "",
-                company=org_name,
-            )
             success = loops_send(
                 settings=settings,
                 to_email=ceo_email,

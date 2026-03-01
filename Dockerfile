@@ -13,4 +13,6 @@ RUN mkdir -p data logs && chown -R appuser:appuser /home/appuser/app
 
 USER appuser
 
-CMD ["python", "-m", "engine.pipeline"]
+# Default: run the email outreach pipeline
+# DRY_RUN, OUTREACH_CHANNEL, MAX_EMAILS_PER_RUN configured via env vars
+CMD ["python", "-m", "engine.pipeline", "--channel", "email"]
