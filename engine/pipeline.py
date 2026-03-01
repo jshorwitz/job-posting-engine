@@ -434,8 +434,7 @@ def _handle_email_outreach(
     job_title: str,
     logger: logging.Logger,
 ) -> None:
-    """Generate and send email outreach via SMTP (requires Hunter.io email)."""
-    from engine.outreach.smtp_sender import send_email
+    """Generate and send email outreach via Loops.so (or SMTP fallback)."""
 
     if not settings.openai_api_key:
         subject = f"Re: your {job_title} hire"
@@ -470,13 +469,37 @@ def _handle_email_outreach(
             f"(LinkedIn: {ceo_linkedin})"
         )
     else:
-        success = send_email(
-            settings=settings,
-            to_email=ceo_email,
-            to_name=ceo_name,
-            subject=subject,
-            body=body,
-        )
+        # Try Loops first, fall back to SMTP
+        if settings.loops_api_key:
+            from engine.outreach.loops_sender import send_email as loops_send
+            from engine.outreach.loops_sender import add_contact
+
+            add_contact(
+                settings=settings,
+                email=ceo_email,
+                first_name=ceo_name.split()[0] if ceo_name else "",
+                last_name=" ".join(ceo_name.split()[1:]) if ceo_name else "",
+                company=org_name,
+            )
+            success = loops_send(
+                settings=settings,
+                to_email=ceo_email,
+                to_name=ceo_name,
+                subject=subject,
+                body=body,
+                company_name=org_name,
+                job_title=job_title,
+            )
+        else:
+            from engine.outreach.smtp_sender import send_email as smtp_send
+
+            success = smtp_send(
+                settings=settings,
+                to_email=ceo_email,
+                to_name=ceo_name,
+                subject=subject,
+                body=body,
+            )
         status = EmailStatus.SENT if success else EmailStatus.FAILED
 
     log_entry = EmailLog(

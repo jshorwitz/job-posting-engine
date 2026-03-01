@@ -21,7 +21,11 @@ class Settings(BaseSettings):
     # --- Hunter.io (email enrichment) ---
     hunter_api_key: str = ""
 
-    # --- SMTP ---
+    # --- Loops.so (email sending) ---
+    loops_api_key: str = ""
+    loops_transactional_id: str = ""
+
+    # --- SMTP (fallback — used only if Loops not configured) ---
     smtp_host: str = "smtp.sendgrid.net"
     smtp_port: int = 587
     smtp_user: str = ""
