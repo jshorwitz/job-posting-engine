@@ -368,7 +368,7 @@ def run(
 
     # ── Slack summary ────────────────────────────────────────────────
     post_run_summary(
-        webhook_url=settings.slack_webhook_url,
+        webhook_url=settings.effective_slack_webhook,
         sent=total_sent,
         skipped=stats["emails_skipped"] + stats["linkedin_skipped"],
         failed=stats["failed"],
@@ -780,7 +780,7 @@ def run_followups(settings: Settings) -> dict[str, int]:
     logger.info("=" * 60)
 
     post_run_summary(
-        webhook_url=settings.slack_webhook_url,
+        webhook_url=settings.effective_slack_webhook,
         sent=stats["sent"],
         skipped=stats["skipped"],
         failed=stats["failed"],
@@ -975,6 +975,25 @@ def run_enrichment(
             first_name = parts[0] if parts else ""
             last_name = " ".join(parts[1:]) if len(parts) > 1 else ""
 
+            # These fields are used in email subject lines. Loops won't
+            # send emails to contacts missing subject-line merge tags,
+            # so skip leads that don't have real data for them.
+            SUBJECT_LINE_FIELDS = {
+                "spyfu_waste_keywords",
+                "spyfu_top_ad_days",
+                "spyfu_gap_keyword",
+                "spyfu_organic_click_value",
+                "builtwith_tech_stack",
+            }
+            job_title = lead.get("job_title_hiring", "")
+            if not job_title:
+                logger.warning("Skipping %s: missing job_title_hiring", email)
+                continue
+            missing = [f for f in SUBJECT_LINE_FIELDS if not lead.get(f)]
+            if missing:
+                logger.warning("Skipping %s: missing subject-line fields %s", email, missing)
+                continue
+
             # Map all enrichment fields to Loops contact properties
             # Format monetary/numeric values for display in email templates
             props: dict[str, str] = {}
@@ -1009,6 +1028,32 @@ def run_enrichment(
                 props["spyfu_estimated_savings"] = f"${monthly * 0.20:,.0f}"
 
             props["jobTitleHiring"] = lead.get("job_title_hiring", "")
+
+            # Apply fallback defaults for body-only merge tags.
+            # Subject-line fields are guaranteed present (filtered above).
+            BODY_FALLBACKS = {
+                "spyfu_monthly_spend": "real money",
+                "spyfu_annual_spend": "your annual spend",
+                "spyfu_ppc_keywords": "hundreds of",
+                "spyfu_organic_keywords": "many",
+                "spyfu_paid_clicks": "thousands",
+                "spyfu_organic_clicks": "thousands",
+                "spyfu_domain_strength": "competitive",
+                "spyfu_top_competitor": "your closest competitor",
+                "spyfu_competitor_spend": "more than you",
+                "spyfu_shared_keywords": "hundreds of",
+                "spyfu_gap_keyword_cpc": "premium",
+                "spyfu_top_headline": "...",
+                "spyfu_total_ads": "a handful of",
+                "spyfu_seo_top10": "many",
+                "builtwith_installed_pixels": "some",
+                "builtwith_missing_pixels": "several platforms",
+                "firecrawl_headline": "something generic",
+                "settings_calendly_url": "https://calendly.com/synter/15min",
+            }
+            for key, fallback in BODY_FALLBACKS.items():
+                if not props.get(key):
+                    props[key] = fallback
 
             ok = add_contact(
                 settings=settings,

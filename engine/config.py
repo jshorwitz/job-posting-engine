@@ -41,6 +41,12 @@ class Settings(BaseSettings):
 
     # --- Slack (optional) ---
     slack_webhook_url: str = ""
+    slack_leads_webhook_url: str = ""  # Doppler uses this name
+
+    @property
+    def effective_slack_webhook(self) -> str:
+        """Use SLACK_LEADS_WEBHOOK_URL from Doppler, fall back to SLACK_WEBHOOK_URL."""
+        return self.slack_leads_webhook_url or self.slack_webhook_url
 
     # --- LinkedIn Sales Navigator ---
     linkedin_session_dir: str = "data/linkedin-session"
