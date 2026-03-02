@@ -80,5 +80,14 @@ class Settings(BaseSettings):
     job_since_days: int = 30
     log_level: str = "INFO"
 
+    # --- X (Twitter) Growth Engine ---
+    joel_x_consumer_key: str = ""
+    joel_x_consumer_secret: str = ""
+    joel_x_access_token: str = ""
+    joel_x_access_token_secret: str = ""
+    x_api_bearer_token: str = ""
+    x_content_poster_enabled: bool = True
+    x_engagement_scanner_enabled: bool = True
+
     # --- Database ---
     database_path: str = "data/outreach.db"

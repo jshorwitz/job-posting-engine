@@ -18,10 +18,12 @@ RUN pip install --no-cache-dir --upgrade pip \
  && pip install --no-cache-dir .
 
 COPY engine/ ./engine/
+COPY scripts/ ./scripts/
 
 RUN mkdir -p data logs && chown -R appuser:appuser /home/appuser/app
 
 USER appuser
 
-# Doppler injects all secrets at runtime via DOPPLER_TOKEN env var
+# Default: enrichment pipeline (overridden per Railway service)
+# X scheduler service uses: doppler run -- python scripts/x_scheduler.py
 CMD ["doppler", "run", "--", "python", "-m", "engine.pipeline", "--enrich", "--export", "loops"]

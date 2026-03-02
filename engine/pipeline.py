@@ -1161,6 +1161,27 @@ def main() -> None:
         "--drip", action="store_true",
         help="Run drip scheduler — sends next due email for each active contact",
     )
+    # X Growth Engine flags
+    parser.add_argument(
+        "--x-post", action="store_true",
+        help="Post next scheduled item from X content calendar",
+    )
+    parser.add_argument(
+        "--x-scan", action="store_true",
+        help="Scan X for engagement opportunities",
+    )
+    parser.add_argument(
+        "--x-list", action="store_true",
+        help="List all posts in X content calendar with status",
+    )
+    parser.add_argument(
+        "--x-engage", type=int, metavar="N",
+        help="Engage with scan candidate at index N",
+    )
+    parser.add_argument(
+        "--x-comment", type=str,
+        help="Custom comment for X engagement",
+    )
     args = parser.parse_args()
 
     settings = Settings()
@@ -1174,6 +1195,79 @@ def main() -> None:
 
     if args.limit:
         settings.max_emails_per_run = args.limit
+
+    # --- X Growth Engine commands ---
+    if args.x_list:
+        from engine.x.scheduled_post import load_calendar, load_posted_log, list_posts
+        list_posts(load_calendar(), load_posted_log())
+        return
+
+    if args.x_post:
+        from engine.x.scheduled_post import (
+            load_calendar, load_posted_log, save_posted_log,
+            get_next_post, get_oauth_session, post_tweet,
+        )
+        import json as _json
+        calendar = load_calendar()
+        posted = load_posted_log()
+        post_id, post = get_next_post(calendar, posted)
+        if not post:
+            print(_json.dumps({"success": False, "error": "All posts have been sent"}))
+            return
+        text = post.get("text", "")
+        if settings.dry_run:
+            print(f"[DRY RUN] {post_id}: {post.get('day')} {post.get('time')} ({post.get('type')})")
+            print(f"  {text}")
+            print(f"  chars: {len(text)}")
+            return
+        if len(text) > 280:
+            print(_json.dumps({"success": False, "error": f"Exceeds 280 chars ({len(text)})"}))
+            return
+        oauth = get_oauth_session()
+        result = post_tweet(oauth, text)
+        tid = result.get("data", {}).get("id", "")
+        posted.add(post_id)
+        save_posted_log(posted)
+        print(_json.dumps({
+            "success": True, "post_id": post_id, "tweet_id": tid,
+            "url": f"https://x.com/JSHorwitz/status/{tid}",
+            "day": post.get("day"), "type": post.get("type"),
+        }, indent=2))
+        return
+
+    if args.x_scan:
+        from engine.x.engagement_scanner import run_scan, save_candidates
+        import json as _json
+        from datetime import datetime as _dt, timezone as _tz
+        candidates = run_scan()
+        scan_data = {
+            "scanned_at": _dt.now(_tz.utc).isoformat(),
+            "candidate_count": len(candidates),
+            "candidates": candidates,
+        }
+        if not settings.dry_run:
+            save_candidates(scan_data)
+        print(_json.dumps({
+            "success": True, "dry_run": settings.dry_run,
+            "candidate_count": len(candidates),
+            "top_5": [
+                {"url": c["url"], "likes": c["likes"], "author": f"@{c['author_username']}", "score": c["score"]}
+                for c in candidates[:5]
+            ],
+        }, indent=2))
+        return
+
+    if args.x_engage is not None:
+        from engine.x.engagement_scanner import load_candidates, engage_candidate
+        import json as _json
+        data = load_candidates()
+        candidates = data.get("candidates", [])
+        if args.x_engage >= len(candidates):
+            print(_json.dumps({"success": False, "error": f"index {args.x_engage} out of range (have {len(candidates)})"}))
+            return
+        result = engage_candidate(candidates[args.x_engage], args.x_comment)
+        print(_json.dumps(result, indent=2))
+        return
 
     if args.drip:
         from engine.drip.scheduler import run_drip

@@ -1,0 +1,202 @@
+{
+  "account": "JSHorwitz",
+  "style_guide": {
+    "voice": "lowercase casual, no periods, short punchy lines, arrows for lists, no emojis, no em dashes, provocative questions, build-in-public energy, founder voice",
+    "avoid": "corporate speak, AI-powered, formal punctuation, long paragraphs, emojis, em dashes, exclamation marks",
+    "formats": ["one-liner hot takes", "arrow breakdowns", "provocative questions", "build-in-public updates", "brand/competitor analysis", "community hype"]
+  },
+  "week_1": [
+    {
+      "day": "monday",
+      "time": "10:00",
+      "type": "hot_take",
+      "text": "claude can read your ad account\n\nit can't run your ads\n\nbig difference"
+    },
+    {
+      "day": "monday",
+      "time": "14:00",
+      "type": "breakdown",
+      "text": "what it actually takes to run ads with AI agents\n\n> oauth tokens for 7 platforms\n> bid optimization that doesn't blow budget\n> creative gen that doesn't look like slop\n> conversion tracking across everything\n> not hallucinating campaign settings\n\nwe built all of this"
+    },
+    {
+      "day": "tuesday",
+      "time": "09:30",
+      "type": "build_in_public",
+      "text": "shipped MCP server yesterday so claude, cursor, and amp can all call our ad tools natively\n\n100+ scripts, 7 platforms, full campaign lifecycle\n\nany AI agent can now run ads through synter"
+    },
+    {
+      "day": "tuesday",
+      "time": "15:00",
+      "type": "hot_take",
+      "text": "every ad platform will have AI features soon\n\nnone of them will talk to each other\n\nthat's the whole problem"
+    },
+    {
+      "day": "wednesday",
+      "time": "10:00",
+      "type": "question",
+      "text": "genuine question for marketers managing 5+ ad platforms:\n\nhow much time do you spend just logging in and out of dashboards"
+    },
+    {
+      "day": "wednesday",
+      "time": "16:00",
+      "type": "breakdown",
+      "text": "how nike runs ads vs how your startup runs ads\n\n> nike: 50 person team, $3B budget, custom tools\n> you: one person, google ads tab open at 2am, hoping the AI doesn't hallucinate\n\nwe're building the 50 person team as AI agents"
+    },
+    {
+      "day": "thursday",
+      "time": "09:00",
+      "type": "build_in_public",
+      "text": "our AI agent just created a full google ads campaign from a chat message\n\nkeywords, ad copy, bid strategy, conversion tracking, geo targeting\n\n45 seconds\n\nthe future is wild"
+    },
+    {
+      "day": "thursday",
+      "time": "14:30",
+      "type": "hot_take",
+      "text": "hot take: the best ad platform is the one your AI agent can actually use\n\nnot the one with the prettiest dashboard"
+    },
+    {
+      "day": "friday",
+      "time": "10:00",
+      "type": "breakdown",
+      "text": "platforms we support right now\n\n> google ads (search, display, pmax, demand gen)\n> meta (facebook + instagram)\n> linkedin\n> reddit\n> x\n> tiktok\n> microsoft ads\n\nall from one chat\n\nsyntermedia.ai"
+    },
+    {
+      "day": "friday",
+      "time": "16:00",
+      "type": "hot_take",
+      "text": "if your ad tech startup can be replaced by a claude connector, it was never a platform\n\nit was a feature"
+    },
+    {
+      "day": "saturday",
+      "time": "11:00",
+      "type": "casual",
+      "text": "building ad infra on a saturday because someone has to make sure the AI agents don't go rogue with your ad budget"
+    },
+    {
+      "day": "sunday",
+      "time": "12:00",
+      "type": "question",
+      "text": "what's the most money you've ever wasted on a bad ad campaign\n\nno judgment, we've all been there"
+    }
+  ],
+  "week_2": [
+    {
+      "day": "monday",
+      "time": "10:00",
+      "type": "article",
+      "text": "writing a piece on why MCP is the new app store for advertising\n\nthe AI picks the tool, the user never sees alternatives\n\nthis changes everything about how ad tech gets distributed"
+    },
+    {
+      "day": "tuesday",
+      "time": "09:30",
+      "type": "build_in_public",
+      "text": "just watched our AI agent create a linkedin campaign, generate the creative, set targeting for CFOs in fintech, and launch from one sentence\n\ntook 90 seconds\n\na human would spend 45 minutes clicking through linkedin's UI"
+    },
+    {
+      "day": "wednesday",
+      "time": "10:00",
+      "type": "hot_take",
+      "text": "google and meta will both ship AI campaign creation this year\n\nneither will manage the other platform's campaigns\n\ncross-platform is the moat nobody's talking about"
+    },
+    {
+      "day": "thursday",
+      "time": "10:00",
+      "type": "breakdown",
+      "text": "ad agencies charge 15-20% of ad spend to manage campaigns\n\nfor a $100k/month budget that's $15-20k/month\n\nfor clicking buttons in a dashboard\n\nAI agents do it better, faster, and for a fraction of the cost\n\nthe math is brutal"
+    },
+    {
+      "day": "friday",
+      "time": "10:00",
+      "type": "build_in_public",
+      "text": "milestone: synter now manages campaigns across 7 platforms for paying customers\n\nno agency, no dashboard hopping, just tell the AI what you want\n\nstill feels surreal"
+    }
+  ],
+  "week_3": [
+    {
+      "day": "monday",
+      "time": "10:00",
+      "type": "hot_take",
+      "text": "the ad tech stack of 2025:\n\n> 6 dashboards\n> 4 analytics tools\n> 3 creative tools\n> 1 spreadsheet holding it all together\n\nthe ad tech stack of 2026:\n\none chat"
+    },
+    {
+      "day": "monday",
+      "time": "14:00",
+      "type": "question",
+      "text": "how many clicks does it take to create a campaign on linkedin\n\ni counted 47 last time\n\nour AI agent does it in one sentence"
+    },
+    {
+      "day": "tuesday",
+      "time": "09:30",
+      "type": "build_in_public",
+      "text": "shipped: AI video ad generation with veo\n\ndescribe what you want, get a video, agent uploads to youtube and creates a demand gen campaign\n\nend to end from chat to live campaign"
+    },
+    {
+      "day": "wednesday",
+      "time": "10:00",
+      "type": "hot_take",
+      "text": "agencies sell you strategy decks\n\nAI agents execute strategy in real time\n\none of these costs $20k/month\n\nthe other costs less than your coffee budget"
+    },
+    {
+      "day": "thursday",
+      "time": "09:00",
+      "type": "breakdown",
+      "text": "what happens when you tell synter to run a reddit campaign\n\n> creates campaign with your objective\n> builds ad group with targeting\n> writes the promoted post\n> attaches conversion tracking\n> sets budget and bid strategy\n\n90 seconds"
+    },
+    {
+      "day": "friday",
+      "time": "10:00",
+      "type": "build_in_public",
+      "text": "we open sourced our MCP server for ad management\n\nany AI agent (claude, cursor, amp) can now create campaigns, pull metrics, and manage ads across 7 platforms\n\nsyntermedia.ai"
+    },
+    {
+      "day": "saturday",
+      "time": "11:00",
+      "type": "casual",
+      "text": "weekend project: making our AI agents smarter at budget allocation across platforms\n\nturns out the math is harder than the engineering"
+    },
+    {
+      "day": "sunday",
+      "time": "12:00",
+      "type": "question",
+      "text": "if you could automate one thing about running ads what would it be\n\nfor me it was creative generation\n\nturns out conversion tracking was harder"
+    }
+  ],
+  "week_4": [
+    {
+      "day": "monday",
+      "time": "10:00",
+      "type": "hot_take",
+      "text": "every SaaS company will need an MCP server in 2 years\n\nif your API can't be called by an AI agent, your product doesn't exist\n\nwe built ours in january"
+    },
+    {
+      "day": "tuesday",
+      "time": "09:30",
+      "type": "build_in_public",
+      "text": "our competitor analysis agent now scrapes the meta ads library, finds patterns in top performers, and generates new creatives inspired by them\n\nfor your brand, not theirs\n\nthis used to take a strategist a full day"
+    },
+    {
+      "day": "wednesday",
+      "time": "10:00",
+      "type": "breakdown",
+      "text": "what most AI ad tools do:\n\n> generate ad copy from a prompt\n> maybe suggest keywords\n> show you a dashboard\n\nwhat synter does:\n\n> full campaign creation\n> cross-platform launch\n> budget optimization\n> conversion tracking\n> creative generation\n> performance monitoring"
+    },
+    {
+      "day": "thursday",
+      "time": "10:00",
+      "type": "hot_take",
+      "text": "the best marketing hire you can make right now isn't a person\n\nit's an AI agent that works 24/7, never calls in sick, and actually reads the data before making decisions"
+    },
+    {
+      "day": "friday",
+      "time": "10:00",
+      "type": "build_in_public",
+      "text": "just crossed 100 campaigns managed by our AI agents\n\nacross google, meta, linkedin, reddit, tiktok, microsoft, and x\n\nfrom zero to here in 3 months\n\nthe pace of AI-native companies is insane"
+    },
+    {
+      "day": "saturday",
+      "time": "11:00",
+      "type": "question",
+      "text": "serious question: would you trust an AI agent to manage $10k/month in ad spend\n\nour users already do\n\nwhat's your threshold"
+    }
+  ]
+}
