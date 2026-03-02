@@ -109,14 +109,15 @@ def _crosspost_to_linkedin(post_id: str, post: dict):
         if post_id in li_posted:
             return
 
-        token = os.environ.get("LINKEDIN_PERSONAL_ACCESS_TOKEN", "")
-        person_urn = os.environ.get("LINKEDIN_PERSON_URN", "")
-        if not token or not person_urn:
-            logger.debug("LinkedIn cross-post skipped: missing credentials")
+        from engine.x.linkedin_crosspost import get_linkedin_auth, _retry_with_refresh
+        try:
+            token, org_urn = get_linkedin_auth()
+        except Exception as e:
+            logger.debug("LinkedIn cross-post skipped: %s", e)
             return
 
         adapted = adapt_for_linkedin(post)
-        result = post_to_linkedin(token, person_urn, adapted)
+        result = _retry_with_refresh(post_to_linkedin, token, org_urn, adapted)
 
         if result.get("success"):
             li_posted.add(post_id)

@@ -1,58 +1,166 @@
 #!/usr/bin/env python3
 """
-Cross-post X content to LinkedIn personal profile.
+Cross-post X content to LinkedIn as SynterAI organization page.
 
 Adapts X-style posts for LinkedIn's format:
 - X posts are ≤280 chars, lowercase, punchy
 - LinkedIn allows 3000 chars — we expand with context, hashtags, and CTA
 
+Auth: Direct LinkedIn OAuth 2.0 via Synter app credentials.
+      Posts as urn:li:organization:4803356 (SynterAI) via w_organization_social scope.
+      Auto-refreshes token when expired using refresh_token.
+
+Env vars:
+    LINKEDIN_ACCESS_TOKEN   - OAuth 2.0 access token
+    LINKEDIN_REFRESH_TOKEN  - OAuth 2.0 refresh token (for auto-renewal)
+    LINKEDIN_CLIENT_ID      - Synter app client ID
+    LINKEDIN_CLIENT_SECRET  - Synter app client secret
+    LINKEDIN_ORG_URN        - Org URN (default: urn:li:organization:4803356)
+
 Usage:
-    python -m engine.x.linkedin_crosspost --next              # Cross-post next unposted item
-    python -m engine.x.linkedin_crosspost --index 0           # Cross-post specific item
-    python -m engine.x.linkedin_crosspost --text "custom"     # Post custom text
-    python -m engine.x.linkedin_crosspost --dry-run --next    # Preview without posting
-
-Auth: Uses LINKEDIN_PERSONAL_ACCESS_TOKEN (OAuth 2.0 w_member_social scope)
-      and LINKEDIN_PERSON_URN (urn:li:person:xxx)
-
-Output: JSON with post details
+    python -m engine.x.linkedin_crosspost --next
+    python -m engine.x.linkedin_crosspost --text "custom post"
+    python -m engine.x.linkedin_crosspost --dry-run --next
 """
 
 import argparse
 import json
+import logging
 import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 # Persistence
 _DATA_DIR = Path("/data") if Path("/data").exists() else Path(__file__).parent
 LINKEDIN_POSTED_LOG = _DATA_DIR / ".linkedin_posted_log.json"
+LINKEDIN_TOKEN_CACHE = _DATA_DIR / ".linkedin_token_cache.json"
+
+# SynterAI org page
+DEFAULT_ORG_URN = "urn:li:organization:4803356"
 
 # Post types that are good for LinkedIn cross-posting
-# (skip casual weekend posts and short questions)
 CROSSPOST_TYPES = {"hot_take", "breakdown", "build_in_public", "article"}
 
-# Hashtags to append (LinkedIn loves these)
+# Hashtags to append
 DEFAULT_HASHTAGS = [
     "AIAgents", "AdTech", "DigitalMarketing", "PaidMedia",
     "MarketingAutomation", "StartupLife",
 ]
 
 
+def _refresh_token(refresh_token: str) -> dict:
+    """Exchange refresh token for a new access token."""
+    import httpx
+
+    client_id = os.environ.get("LINKEDIN_CLIENT_ID", "")
+    client_secret = os.environ.get("LINKEDIN_CLIENT_SECRET", "")
+
+    if not client_id or not client_secret:
+        raise RuntimeError("LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET required for token refresh")
+
+    resp = httpx.post(
+        "https://www.linkedin.com/oauth/v2/accessToken",
+        data={
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+            "client_id": client_id,
+            "client_secret": client_secret,
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        timeout=15.0,
+    )
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _save_token_cache(access_token: str, refresh_token: str):
+    """Cache refreshed tokens to disk so we don't re-read stale env vars."""
+    try:
+        with open(LINKEDIN_TOKEN_CACHE, "w") as f:
+            json.dump({
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "refreshed_at": datetime.now(timezone.utc).isoformat(),
+            }, f)
+    except Exception as e:
+        logger.warning("failed to save token cache: %s", e)
+
+
+def _load_token_cache() -> dict | None:
+    """Load cached tokens (from a previous refresh)."""
+    try:
+        if LINKEDIN_TOKEN_CACHE.exists():
+            with open(LINKEDIN_TOKEN_CACHE) as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return None
+
+
 def get_linkedin_auth() -> tuple[str, str]:
-    """Get LinkedIn access token and person URN."""
-    token = os.environ.get("LINKEDIN_PERSONAL_ACCESS_TOKEN")
-    person_urn = os.environ.get("LINKEDIN_PERSON_URN")
+    """Get LinkedIn access token and org URN.
+
+    Priority:
+    1. Cached token from disk (from a previous refresh)
+    2. LINKEDIN_ACCESS_TOKEN env var
+    3. Refresh using LINKEDIN_REFRESH_TOKEN if access token fails
+    """
+    # Check disk cache first (may have a fresher token from a previous refresh)
+    cache = _load_token_cache()
+    token = cache["access_token"] if cache else ""
 
     if not token:
-        print(json.dumps({"success": False, "error": "LINKEDIN_PERSONAL_ACCESS_TOKEN not set"}))
-        sys.exit(1)
-    if not person_urn:
-        print(json.dumps({"success": False, "error": "LINKEDIN_PERSON_URN not set (e.g. urn:li:person:abc123)"}))
-        sys.exit(1)
+        token = os.environ.get("LINKEDIN_ACCESS_TOKEN", "")
 
-    return token, person_urn
+    if not token:
+        # Try to get one via refresh
+        refresh = os.environ.get("LINKEDIN_REFRESH_TOKEN", "")
+        if refresh:
+            logger.info("no access token, attempting refresh...")
+            tokens = _refresh_token(refresh)
+            token = tokens["access_token"]
+            new_refresh = tokens.get("refresh_token", refresh)
+            _save_token_cache(token, new_refresh)
+        else:
+            raise RuntimeError(
+                "Set LINKEDIN_ACCESS_TOKEN or LINKEDIN_REFRESH_TOKEN. "
+                "Run: python scripts/linkedin_auth.py"
+            )
+
+    org_urn = os.environ.get("LINKEDIN_ORG_URN", DEFAULT_ORG_URN)
+    return token, org_urn
+
+
+def _retry_with_refresh(func, *args, **kwargs) -> dict:
+    """Call func; if 401, refresh token and retry once."""
+    result = func(*args, **kwargs)
+
+    if not result.get("success") and "401" in str(result.get("error", "")):
+        refresh = os.environ.get("LINKEDIN_REFRESH_TOKEN", "")
+        cache = _load_token_cache()
+        if cache and cache.get("refresh_token"):
+            refresh = cache["refresh_token"]
+
+        if refresh:
+            logger.info("got 401, refreshing LinkedIn token...")
+            try:
+                tokens = _refresh_token(refresh)
+                new_token = tokens["access_token"]
+                new_refresh = tokens.get("refresh_token", refresh)
+                _save_token_cache(new_token, new_refresh)
+
+                # Retry with new token
+                # Replace token in args (it's the first positional arg)
+                new_args = (new_token,) + args[1:]
+                result = func(*new_args, **kwargs)
+            except Exception as e:
+                logger.error("token refresh failed: %s", e)
+                result = {"success": False, "error": f"Token refresh failed: {e}. Re-run: python scripts/linkedin_auth.py"}
+
+    return result
 
 
 def load_linkedin_posted() -> set:
@@ -77,7 +185,6 @@ def adapt_for_linkedin(post: dict) -> str:
     """
     text = post.get("text", "")
 
-    # Replace > arrows with bullet points for LinkedIn readability
     lines = text.split("\n")
     adapted_lines = []
     for line in lines:
@@ -89,56 +196,51 @@ def adapt_for_linkedin(post: dict) -> str:
 
     adapted = "\n".join(adapted_lines)
 
-    # Add hashtags
     hashtags = " ".join(f"#{h}" for h in DEFAULT_HASHTAGS[:4])
     adapted = f"{adapted}\n\n{hashtags}"
 
     return adapted
 
 
-def post_to_linkedin(token: str, person_urn: str, text: str) -> dict:
-    """Post text content to LinkedIn personal profile via UGC Posts API."""
+def post_to_linkedin(token: str, org_urn: str, text: str) -> dict:
+    """Post text content to LinkedIn organization page via REST Posts API."""
     import httpx
 
-    url = "https://api.linkedin.com/v2/ugcPosts"
+    url = "https://api.linkedin.com/rest/posts"
     headers = {
         "Authorization": f"Bearer {token}",
         "Content-Type": "application/json",
+        "LinkedIn-Version": "202510",
         "X-Restli-Protocol-Version": "2.0.0",
     }
 
     body = {
-        "author": person_urn,
+        "author": org_urn,
+        "commentary": text,
+        "visibility": "PUBLIC",
+        "distribution": {
+            "feedDistribution": "MAIN_FEED",
+            "targetEntities": [],
+            "thirdPartyDistributionChannels": [],
+        },
         "lifecycleState": "PUBLISHED",
-        "specificContent": {
-            "com.linkedin.ugc.ShareContent": {
-                "shareCommentary": {"text": text},
-                "shareMediaCategory": "NONE",
-            }
-        },
-        "visibility": {
-            "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC"
-        },
     }
 
     with httpx.Client(timeout=30.0) as client:
         response = client.post(url, headers=headers, json=body)
 
         if response.status_code == 401:
-            return {"success": False, "error": "LinkedIn token expired or invalid — regenerate with w_member_social scope"}
+            return {"success": False, "error": "401: LinkedIn token expired"}
 
         if response.status_code == 403:
-            return {"success": False, "error": "LinkedIn token missing w_member_social scope"}
+            return {"success": False, "error": f"403: not admin of {org_urn} or missing w_organization_social scope"}
 
-        response.raise_for_status()
+        if response.status_code >= 400:
+            error_body = response.text[:500]
+            return {"success": False, "error": f"LinkedIn {response.status_code}: {error_body}"}
 
-        # LinkedIn returns the post URN in the id field
-        post_id = response.headers.get("X-RestLi-Id", response.headers.get("x-restli-id", ""))
-        if not post_id:
-            data = response.json()
-            post_id = data.get("id", "")
-
-        return {"success": True, "post_id": post_id}
+        post_id = response.headers.get("x-restli-id", response.headers.get("X-RestLi-Id", ""))
+        return {"success": True, "post_id": post_id, "org": org_urn}
 
 
 def get_next_crosspost(calendar: dict, posted: set, linkedin_posted: set) -> tuple:
@@ -151,11 +253,9 @@ def get_next_crosspost(calendar: dict, posted: set, linkedin_posted: set) -> tup
             post_id = f"{week_key}_{i}"
             post_type = post.get("type", "")
 
-            # Only cross-post types that work on LinkedIn
             if post_type not in CROSSPOST_TYPES:
                 continue
 
-            # Must be posted to X already, but not yet to LinkedIn
             if post_id in posted and post_id not in linkedin_posted:
                 return post_id, post
 
@@ -163,7 +263,7 @@ def get_next_crosspost(calendar: dict, posted: set, linkedin_posted: set) -> tup
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Cross-post X content to LinkedIn")
+    parser = argparse.ArgumentParser(description="Cross-post X content to LinkedIn org page")
     parser.add_argument("--next", action="store_true", help="Cross-post next eligible item")
     parser.add_argument("--index", type=int, help="Cross-post specific index")
     parser.add_argument("--week", default="week_1", help="Week to use with --index")
@@ -179,8 +279,8 @@ def main():
         if args.dry_run:
             print(json.dumps({"success": True, "dry_run": True, "text": args.text, "chars": len(args.text)}))
             return
-        token, person_urn = get_linkedin_auth()
-        result = post_to_linkedin(token, person_urn, args.text)
+        token, org_urn = get_linkedin_auth()
+        result = _retry_with_refresh(post_to_linkedin, token, org_urn, args.text)
         print(json.dumps(result, indent=2))
         return
 
@@ -195,7 +295,7 @@ def main():
     if args.next:
         post_id, post = get_next_crosspost(calendar, x_posted, li_posted)
         if not post:
-            print(json.dumps({"success": False, "error": "No pending cross-posts (all eligible items already posted to LinkedIn)"}))
+            print(json.dumps({"success": False, "error": "No pending cross-posts"}))
             return
         posts_to_send.append((post_id, post))
 
@@ -227,14 +327,14 @@ def main():
             print()
         return
 
-    token, person_urn = get_linkedin_auth()
+    token, org_urn = get_linkedin_auth()
     results = []
 
     for post_id, post in posts_to_send:
         adapted = adapt_for_linkedin(post)
 
         try:
-            result = post_to_linkedin(token, person_urn, adapted)
+            result = _retry_with_refresh(post_to_linkedin, token, org_urn, adapted)
             if result.get("success"):
                 li_posted.add(post_id)
                 save_linkedin_posted(li_posted)

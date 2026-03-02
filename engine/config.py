@@ -90,9 +90,10 @@ class Settings(BaseSettings):
     x_engagement_scanner_enabled: bool = True
     x_linkedin_crosspost_enabled: bool = True
 
-    # --- LinkedIn Personal Posting (cross-post from X) ---
-    linkedin_personal_access_token: str = ""
-    linkedin_person_urn: str = ""  # e.g. urn:li:person:abc123
+    # --- LinkedIn Org Posting (cross-post from X) ---
+    linkedin_access_token: str = ""
+    linkedin_refresh_token: str = ""
+    linkedin_org_urn: str = "urn:li:organization:4803356"
 
     # --- Database ---
     database_path: str = "data/outreach.db"
