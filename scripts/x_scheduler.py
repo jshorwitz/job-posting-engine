@@ -49,8 +49,11 @@ def should_scan_now(last_scan_time: float) -> bool:
     return elapsed >= SCAN_INTERVAL_HOURS * 3600
 
 
+LINKEDIN_CROSSPOST_ENABLED = os.environ.get("X_LINKEDIN_CROSSPOST_ENABLED", "true").lower() != "false"
+
+
 def run_post():
-    """Post next scheduled item from content calendar."""
+    """Post next scheduled item from content calendar, then cross-post to LinkedIn."""
     try:
         from engine.x.scheduled_post import (
             load_calendar, load_posted_log, save_posted_log,
@@ -82,8 +85,48 @@ def run_post():
             post_id, post.get("day"), post.get("type"), tid,
         )
 
+        # Auto cross-post to LinkedIn if enabled and post type is eligible
+        if LINKEDIN_CROSSPOST_ENABLED:
+            _crosspost_to_linkedin(post_id, post)
+
     except Exception as e:
         logger.error("post failed: %s", e, exc_info=True)
+
+
+def _crosspost_to_linkedin(post_id: str, post: dict):
+    """Cross-post an X post to LinkedIn personal profile."""
+    try:
+        from engine.x.linkedin_crosspost import (
+            CROSSPOST_TYPES, adapt_for_linkedin, post_to_linkedin,
+            load_linkedin_posted, save_linkedin_posted,
+        )
+
+        if post.get("type", "") not in CROSSPOST_TYPES:
+            logger.debug("skipping LinkedIn cross-post for %s (type=%s)", post_id, post.get("type"))
+            return
+
+        li_posted = load_linkedin_posted()
+        if post_id in li_posted:
+            return
+
+        token = os.environ.get("LINKEDIN_PERSONAL_ACCESS_TOKEN", "")
+        person_urn = os.environ.get("LINKEDIN_PERSON_URN", "")
+        if not token or not person_urn:
+            logger.debug("LinkedIn cross-post skipped: missing credentials")
+            return
+
+        adapted = adapt_for_linkedin(post)
+        result = post_to_linkedin(token, person_urn, adapted)
+
+        if result.get("success"):
+            li_posted.add(post_id)
+            save_linkedin_posted(li_posted)
+            logger.info("cross-posted %s to LinkedIn: %s", post_id, result.get("post_id", ""))
+        else:
+            logger.warning("LinkedIn cross-post failed for %s: %s", post_id, result.get("error", ""))
+
+    except Exception as e:
+        logger.error("LinkedIn cross-post error for %s: %s", post_id, e)
 
 
 def run_scan():

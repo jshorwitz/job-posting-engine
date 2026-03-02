@@ -1182,6 +1182,14 @@ def main() -> None:
         "--x-comment", type=str,
         help="Custom comment for X engagement",
     )
+    parser.add_argument(
+        "--li-crosspost", action="store_true",
+        help="Cross-post next eligible X post to LinkedIn",
+    )
+    parser.add_argument(
+        "--li-crosspost-all", action="store_true",
+        help="Cross-post all pending X posts to LinkedIn",
+    )
     args = parser.parse_args()
 
     settings = Settings()
@@ -1267,6 +1275,63 @@ def main() -> None:
             return
         result = engage_candidate(candidates[args.x_engage], args.x_comment)
         print(_json.dumps(result, indent=2))
+        return
+
+    if args.li_crosspost or args.li_crosspost_all:
+        from engine.x.linkedin_crosspost import (
+            load_linkedin_posted, save_linkedin_posted, adapt_for_linkedin,
+            post_to_linkedin, get_next_crosspost, CROSSPOST_TYPES,
+        )
+        from engine.x.scheduled_post import load_calendar, load_posted_log, _get_week_keys
+        import json as _json
+
+        calendar = load_calendar()
+        x_posted = load_posted_log()
+        li_posted = load_linkedin_posted()
+        posts_to_send = []
+
+        if args.li_crosspost_all:
+            for week_key in _get_week_keys(calendar):
+                for i, post in enumerate(calendar.get(week_key, [])):
+                    post_id = f"{week_key}_{i}"
+                    if post.get("type", "") in CROSSPOST_TYPES and post_id in x_posted and post_id not in li_posted:
+                        posts_to_send.append((post_id, post))
+        else:
+            post_id, post = get_next_crosspost(calendar, x_posted, li_posted)
+            if post:
+                posts_to_send.append((post_id, post))
+
+        if not posts_to_send:
+            print(_json.dumps({"success": False, "error": "No pending cross-posts"}))
+            return
+
+        if settings.dry_run:
+            for post_id, post in posts_to_send:
+                adapted = adapt_for_linkedin(post)
+                print(f"[DRY RUN] {post_id}: {post.get('day')} ({post.get('type')}) → LinkedIn ({len(adapted)} chars)")
+            return
+
+        token = settings.linkedin_personal_access_token
+        person_urn = settings.linkedin_person_urn
+        if not token or not person_urn:
+            print(_json.dumps({"success": False, "error": "Set LINKEDIN_PERSONAL_ACCESS_TOKEN and LINKEDIN_PERSON_URN"}))
+            return
+
+        results = []
+        for post_id, post in posts_to_send:
+            adapted = adapt_for_linkedin(post)
+            try:
+                result = post_to_linkedin(token, person_urn, adapted)
+                if result.get("success"):
+                    li_posted.add(post_id)
+                    save_linkedin_posted(li_posted)
+                    results.append({"post_id": post_id, "status": "sent", "linkedin_post_id": result.get("post_id", "")})
+                else:
+                    results.append({"post_id": post_id, "status": "failed", "error": result.get("error", "")})
+            except Exception as e:
+                results.append({"post_id": post_id, "status": "failed", "error": str(e)})
+
+        print(_json.dumps({"success": True, "results": results}, indent=2))
         return
 
     if args.drip:

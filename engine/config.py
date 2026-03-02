@@ -88,6 +88,11 @@ class Settings(BaseSettings):
     x_api_bearer_token: str = ""
     x_content_poster_enabled: bool = True
     x_engagement_scanner_enabled: bool = True
+    x_linkedin_crosspost_enabled: bool = True
+
+    # --- LinkedIn Personal Posting (cross-post from X) ---
+    linkedin_personal_access_token: str = ""
+    linkedin_person_urn: str = ""  # e.g. urn:li:person:abc123
 
     # --- Database ---
     database_path: str = "data/outreach.db"
