@@ -23,6 +23,7 @@ import argparse
 import json
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -174,6 +175,7 @@ def run_scan(min_likes: int = 20, min_followers: int = 500) -> list:
         try:
             results = search_tweets(bearer_token, query, 20, min_likes, min_followers)
             all_results.extend(results)
+            time.sleep(1)  # avoid rate limits with 27 queries
         except Exception:
             pass  # skip failed queries, log nothing (rate limits are common)
 
