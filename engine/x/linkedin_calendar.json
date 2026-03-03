@@ -1,101 +1,128 @@
 {
   "account": "SynterAI",
+  "platform": "linkedin",
   "org_urn": "urn:li:organization:4803356",
   "style_guide": {
-    "voice": "semi-formal, confident, technical, personify Synter as an agent, professional but approachable",
-    "avoid": "AI-powered, AI-driven, AI-enhanced, corporate jargon, emojis (except sparingly), clickbait",
-    "formats": ["thought leadership", "product launches", "technical deep dives", "case studies", "industry insights"]
+    "voice": "Semi-formal, confident, technical. Personify Synter as an intelligent agent, not a tool.",
+    "never_say": [
+      "AI-Powered",
+      "AI-Driven",
+      "AI-Enhanced"
+    ],
+    "always_say": [
+      "AI Agents",
+      "AI Agent Media Buyers"
+    ],
+    "formatting": "Use line breaks for readability. Use \u2192 or \u2022 for lists. 3-4 hashtags at end. Best length 1300-1900 chars.",
+    "cta": "Link to syntermedia.ai where appropriate",
+    "brand_colors": {
+      "background": "#0B0E12",
+      "accent": "#9CFF5A",
+      "font_style": "Space Grotesk"
+    }
   },
   "week_1": [
     {
-      "day": "tuesday",
-      "time": "09:00",
+      "day": "Tuesday",
+      "time": "08:30 PT",
       "type": "product_launch",
-      "text": "We just shipped something big.\n\nSynter now exposes a full MCP (Model Context Protocol) server — meaning any AI agent can manage your ad campaigns across Google, Meta, LinkedIn, Reddit, and more.\n\nNo dashboards. No switching tabs. No manual CSV exports.\n\nYour AI agent connects to Synter's MCP, pulls performance data, adjusts budgets, pauses underperformers, and launches new campaigns. Programmatically. In seconds.\n\nThis is what advertising infrastructure looks like when it's built for agents, not humans clicking buttons.\n\nWe've open-sourced the MCP spec and published full documentation at syntermedia.ai.\n\nThe era of dashboard-driven advertising is ending. The era of AI Agent Media Buyers has begun.\n\n#MCP #AdTech #AIAgents",
-      "image_prompt": "Abstract futuristic network visualization on dark background #0B0E12, glowing lime green #9CFF5A connection nodes forming a constellation pattern, cyan #4DD6FF data streams flowing between nodes representing different ad platforms, modern tech aesthetic, clean minimalist design, 1200x627 dimensions, no text"
+      "text": "We just shipped something most ad platforms won't build for years.\n\nSynter now has a Model Context Protocol (MCP) server \u2014 meaning any AI agent (Claude, Cursor, Amp) can manage your ad campaigns across 7 platforms through a single interface.\n\nWhat that looks like in practice:\n\n\u2192 Ask Claude to pull your Google Ads performance\n\u2192 Have it pause underperforming Meta campaigns\n\u2192 Reallocate budget to your best LinkedIn ad sets\n\u2192 Generate fresh creatives with Imagen 4\n\u2192 Launch everything \u2014 without opening a single dashboard\n\nThe MCP server handles OAuth credential injection, credit billing, user scoping, and audit logging automatically. Your AI agent just talks to Synter, and Synter executes.\n\nPlatforms supported today:\n\u2022 Google Ads\n\u2022 Meta (Facebook/Instagram)\n\u2022 LinkedIn Ads\n\u2022 Reddit Ads\n\u2022 X Ads\n\u2022 TikTok Ads\n\u2022 Microsoft Ads\n\nThis is what we mean by AI Agent Media Buyers. Not a chatbot bolted onto a dashboard. An actual execution layer that turns conversation into live campaigns.\n\nTry it \u2192 syntermedia.ai/developer\n\n#AIAgents #AdTech #ProgrammaticAdvertising #MediaBuying",
+      "image_prompt": "Dark background (#0B0E12). A central glowing lime green (#9CFF5A) hub node with 7 cyan (#4DD6FF) orbiting spheres connected by thin glowing green lines forming a constellation pattern. Abstract network visualization. No text, no logos. Clean, minimal, high contrast. 1200x627.",
+      "has_image": true
     },
     {
-      "day": "wednesday",
-      "time": "09:00",
+      "day": "Wednesday",
+      "time": "09:00 PT",
       "type": "thought_leadership",
-      "text": "Hot take: Ad dashboards are the new fax machines.\n\nThink about it. You log into 5 different platforms. You manually compare metrics across tabs. You export CSVs, paste into spreadsheets, and build reports that are outdated by the time you present them.\n\nThis workflow hasn't fundamentally changed in 15 years.\n\nMeanwhile, AI agents can now:\n→ Pull real-time performance across every platform simultaneously\n→ Identify underperforming campaigns and pause them automatically\n→ Reallocate budget to top performers in seconds\n→ Generate new creatives and launch fresh ad variants\n\nSynter does all of this through a single conversational interface. Tell it what you want. It executes.\n\nThe best media buyers won't be the ones with the most dashboards open. They'll be the ones with the best AI agents working for them.\n\n#DigitalAdvertising #MediaBuying",
-      "image_prompt": "Split composition on dark background #0B0E12, left side showing fragmented scattered rectangles in muted gray representing old dashboards fading away, right side showing a unified glowing orbital ring in lime #9CFF5A and cyan #4DD6FF representing unified AI agent, modern tech aesthetic, 1200x627 dimensions, no text"
+      "text": "The average media buyer manages 3-4 platforms manually.\n\nThey log into Google Ads. Pull a report. Switch to Meta. Pull another report. Open a spreadsheet. Compare numbers. Make a decision. Go back to each platform. Adjust bids. Repeat.\n\nThat workflow takes 6-8 hours per week \u2014 and it's fundamentally reactive. By the time you've analyzed yesterday's data across platforms, the opportunity has already moved.\n\nHere's the shift happening right now:\n\nAI agents don't context-switch. They don't forget to check Reddit Ads because the Meta dashboard was on fire. They don't deprioritize TikTok because the LinkedIn campaign needed attention.\n\nAn AI agent pulls performance from all 7 platforms simultaneously. It identifies the cross-platform pattern \u2014 \"LinkedIn CPL dropped 22% while Google CPA rose 15% on the same audience\" \u2014 and acts on it in minutes, not days.\n\nThis isn't about replacing media buyers. It's about giving them agents that handle the execution while they focus on strategy.\n\nThe teams that figure this out first will operate at a fundamentally different speed than everyone else.\n\n#DigitalMarketing #AIAgents #PerformanceMarketing #PaidMedia",
+      "image_prompt": "Dark background (#0B0E12). Split composition: left side shows scattered fragmented geometric shapes in muted gray tones with orange stress indicators. Right side shows a single unified flowing lime green (#9CFF5A) line forming a smooth curve with cyan (#4DD6FF) data points. Abstract contrast between chaos and simplicity. No text, no logos. 1200x627.",
+      "has_image": true
     },
     {
-      "day": "thursday",
-      "time": "09:00",
-      "type": "technical_deep_dive",
-      "text": "How Synter manages campaigns across 7+ ad platforms with a single API call.\n\nUnder the hood, each platform has its own quirks:\n\n• Google Ads requires EU political advertising flags and explicit network settings (API v21+)\n• LinkedIn uses Rest.li 2.0 — not standard REST — with strict URL encoding\n• Reddit's v3 API wraps every payload in {\"data\": {...}} and requires a custom User-Agent header\n• X (Twitter) still uses OAuth 1.0a while everyone else moved to OAuth 2.0\n• Meta blocks write operations without Standard Access app review\n\nSynter abstracts all of this. One unified interface. One set of credentials. One conversation.\n\nThe agent handles token refresh, rate limiting, pagination, and platform-specific field mapping. You just say \"launch a search campaign targeting SaaS founders\" and Synter figures out the rest.\n\nWe built this because no marketer should need to memorize 7 different API specifications.\n\n#AdTech #APIs #DeveloperExperience",
-      "image_prompt": "Isometric view of interconnected geometric cubes on dark background #0B0E12, seven cubes arranged in a hexagonal pattern each with a subtle glow, connected by flowing data lines in lime #9CFF5A and cyan #4DD6FF converging to a central hub, modern tech aesthetic, clean vector style, 1200x627 dimensions, no text"
+      "day": "Thursday",
+      "time": "08:00 PT",
+      "type": "build_in_public",
+      "text": "March build update \u2014 shipping faster than ever.\n\nWhat we deployed in the last 30 days:\n\n\u2192 Reddit Ads v3 API integration (full campaign lifecycle \u2014 create, pause, update, report)\n\u2192 Fixed Reddit OAuth PKCE issue that silently broke refresh tokens\n\u2192 X Growth Engine \u2014 pay-per-usage ads API support (~$0.01/post)\n\u2192 TikTok Events API (CAPI) for server-side conversion tracking\n\u2192 Microsoft Ads offline conversions\n\u2192 Granular OAuth connection UX with 10-stage progress tracking\n\u2192 Custom Nango Docker image with provider-specific PKCE patches\n\nThe hardest bug this month: Reddit's OAuth endpoint silently drops your refresh_token when PKCE code_challenge is present \u2014 even with duration=permanent. No error. No warning. Your connection just dies after 60 minutes.\n\nWe patched our Nango instance to disable PKCE for Reddit specifically. Took 3 days to diagnose, 4 lines to fix.\n\nBuilding ad platform integrations is 20% feature work and 80% debugging undocumented API behavior.\n\nMore coming next week.\n\n#AdTech #AIAgents #MarketingAutomation #DigitalMarketing",
+      "image_prompt": "Dark background (#0B0E12). Abstract visualization of a deployment pipeline: vertical cascade of lime green (#9CFF5A) glowing checkmark shapes flowing downward like a waterfall, with small cyan (#4DD6FF) particle effects. Engineering/build aesthetic. No text, no logos, no code. 1200x627.",
+      "has_image": true
     }
   ],
   "week_2": [
     {
-      "day": "tuesday",
-      "time": "09:00",
-      "type": "build_in_public",
-      "text": "Building campaign creation that actually works across platforms is harder than it looks.\n\nHere's what we learned:\n\nGoogle's Performance Max requires a bulk mutate request — you can't create the campaign, asset group, and assets separately. Everything has to go in one atomic operation or the API rejects it.\n\nLinkedIn deprecated the /targeting field in v202510. You now need targetingCriteria with a nested AND/OR structure. Oh, and the objective is WEBSITE_VISIT (singular), not WEBSITE_VISITS.\n\nReddit's CONVERSIONS campaigns need optimization_goal set on the ad group, but pixel_id is NOT a valid field (despite what you'd expect). That one took us a few hours to debug.\n\nEvery one of these edge cases is now handled inside Synter. You describe what you want — Synter handles the platform gymnastics.\n\nWe're sharing these learnings because the industry needs better tooling, and pretending cross-platform ad management is simple doesn't help anyone.\n\n#BuildInPublic #AdTech",
-      "image_prompt": "Abstract blueprint-style technical diagram on dark background #0B0E12, showing interconnected workflow nodes with directional arrows in lime #9CFF5A, small geometric shapes representing different platform configurations, cyan #4DD6FF highlight accents on key connection points, engineering schematic aesthetic, 1200x627 dimensions, no text"
-    },
-    {
-      "day": "wednesday",
-      "time": "09:00",
-      "type": "industry_insight",
-      "text": "The creative bottleneck in advertising is about to disappear.\n\nMost teams spend 2-3 weeks going from brief to live creative. Copywriter drafts. Designer mocks up. Revisions. Platform-specific resizing. Approval chains. Upload. Repeat for each platform.\n\nSynter generates ad creatives in seconds:\n\n→ Imagen 4 for display and social images (landscape, square, portrait — all specs handled)\n→ Veo for video ads (YouTube, TikTok, Instagram Reels)\n→ Platform-optimized copy with correct character limits per placement\n→ Automatic asset group assembly for Performance Max\n\nThis isn't about replacing creative teams. It's about giving them the ability to test 50 variations instead of 3. To iterate in real-time instead of waiting for the next sprint.\n\nThe teams that win will be the ones that test fastest. AI agents make that possible.\n\n#CreativeStrategy #PerformanceMarketing",
-      "image_prompt": "Dynamic composition on dark background #0B0E12, multiple overlapping translucent rectangles in different aspect ratios (landscape, square, portrait) arranged in a cascading pattern, edges glowing in lime #9CFF5A and cyan #4DD6FF, suggesting rapid creative generation, modern tech aesthetic, 1200x627 dimensions, no text"
-    },
-    {
-      "day": "thursday",
-      "time": "09:00",
+      "day": "Tuesday",
+      "time": "09:00 PT",
       "type": "case_study",
-      "text": "Competitor analysis used to mean manually scrolling through the Facebook Ads Library and taking screenshots.\n\nNow Synter does it in one command.\n\nHere's the workflow:\n\n1. Synter scrapes the Meta Ads Library for your competitor's active campaigns (via Apify — direct scraping gets blocked by Meta's bot detection)\n2. Analyzes creative patterns: what hooks they're using, which formats dominate, how they structure CTAs\n3. Generates NEW creatives for YOUR brand, inspired by what's working for competitors\n\nThe key insight: you're not copying ads. You're identifying patterns that perform well in your market and applying those patterns with your brand's voice and positioning.\n\nOne of our users ran this against their top 3 competitors and discovered that carousel ads with problem-agitate-solve hooks outperformed everything else in their vertical. They launched 12 variants in an afternoon.\n\nThat's the difference between insight and execution. Synter handles both.\n\n#CompetitiveIntelligence #DigitalMarketing",
-      "image_prompt": "Abstract data analysis visualization on dark background #0B0E12, three parallel vertical streams of geometric particles converging into a single refined output stream, input streams in muted cool tones, output stream glowing in lime #9CFF5A with cyan #4DD6FF particle trails, modern tech aesthetic, 1200x627 dimensions, no text"
+      "text": "Here's how Synter manages a $50/day Google Ads campaign from a single chat message.\n\nThe prompt: \"Create a search campaign for SaaS lead gen targeting marketing automation keywords with a $50 daily budget.\"\n\nWhat Synter does in under 90 seconds:\n\n1. Creates the campaign with all Google Ads API v21 required fields (including EU political advertising flag, explicit network settings)\n2. Sets bidding to maximize_clicks (no conversion data yet \u2014 Synter knows not to use maximize_conversions without tracking)\n3. Generates keyword groups from the prompt\n4. Creates responsive search ads with 15 headlines and 4 descriptions\n5. Sets geo-targeting\n6. Launches in PAUSED state for review\n\nThen, without being asked:\n\n\u2192 Creates a Google Ads conversion action\n\u2192 Sets up the GTM tag with the conversion label\n\u2192 Publishes the GTM container\n\u2192 Recommends switching to maximize_conversions after 15-30 conversions\n\nNo dashboard hopping. No copy-pasting conversion IDs between tabs. No forgetting to publish the GTM container (we've all done it).\n\nSynter handles the full lifecycle because it understands the dependencies between tracking, bidding, and creative.\n\nThat's what AI Agent Media Buyers actually means.\n\nsyntermedia.ai\n\n#AIAgents #PerformanceMarketing #PaidMedia #AdTech",
+      "image_prompt": "Dark background (#0B0E12). Abstract flowchart: a lime green (#9CFF5A) speech bubble shape at top flowing down through 6 connected glowing circular nodes via green gradient lines. Each node has a different subtle cyan (#4DD6FF) icon shape (gear, magnifier, chart, target, tag, rocket). No text, no logos. Infographic style. 1200x627.",
+      "has_image": true
+    },
+    {
+      "day": "Wednesday",
+      "time": "08:30 PT",
+      "type": "comparison",
+      "text": "Agency retainer vs. AI Agent Media Buyer \u2014 an honest comparison.\n\nTraditional agency:\n\u2022 $3,000-$15,000/month retainer\n\u2022 Weekly or biweekly reporting calls\n\u2022 2-5 day turnaround on campaign changes\n\u2022 Account manager handles 8-15 clients\n\u2022 Platform expertise varies by team member\n\u2022 Creative production billed separately\n\nSynter AI Agent:\n\u2022 Credits-based pricing (pay for what you use)\n\u2022 Real-time reporting, pull data anytime via chat\n\u2022 Campaign changes execute in seconds\n\u2022 Dedicated to your account, 24/7\n\u2022 Consistent expertise across all 7 platforms\n\u2022 AI creative generation included (Imagen 4 images, Veo video)\n\nWhat agencies still do better:\n\u2022 High-touch client relationships\n\u2022 Brand strategy and positioning\n\u2022 Complex multi-stakeholder campaigns\n\u2022 Industry-specific creative intuition\n\nThe sweet spot? Agencies using Synter as their execution layer. Strategy stays human. Execution becomes instant.\n\nWe built the MCP server specifically for this \u2014 so agency teams can manage client campaigns through their existing AI workflows.\n\nsyntermedia.ai\n\n#MediaBuying #AIAgents #MarketingAutomation #DigitalMarketing",
+      "image_prompt": "Dark background (#0B0E12). Two abstract columns side by side. Left column: stacked heavy rectangular shapes in muted gray suggesting weight and cost. Right column: light floating lime green (#9CFF5A) geometric shapes with cyan (#4DD6FF) glow suggesting efficiency and speed. Abstract comparison. No text, no logos. 1200x627.",
+      "has_image": true
+    },
+    {
+      "day": "Thursday",
+      "time": "09:00 PT",
+      "type": "product_launch",
+      "text": "Synter now generates landing pages from a chat prompt.\n\nType: \"Create a landing page for my SaaS free trial targeting marketing managers.\"\n\nSynter generates:\n\u2192 A complete, responsive HTML page\n\u2192 Professional copy tailored to your audience\n\u2192 Mobile-optimized layout\n\u2192 Hosted instantly at syntermedia.ai/lp/your-slug\n\u2192 Tracking pixels auto-injected (Meta, Google, LinkedIn, Reddit, TikTok)\n\u2192 Custom domain support (CNAME to your domain)\n\nWhy this matters for advertisers:\n\nThe #1 bottleneck in campaign launches isn't the ads \u2014 it's the landing page. You've got the creative, the targeting, the budget. But the page isn't ready.\n\nNow the same AI agent that builds your campaigns also builds the page they point to. Same chat. Same session. Full funnel in minutes.\n\nTracking is configured automatically because Synter already knows your pixel IDs from your connected accounts. No manual pixel installation. No forgotten events.\n\n10 credits per page. Custom domains included.\n\nsyntermedia.ai\n\n#AdTech #AIAgents #PerformanceMarketing #ProgrammaticAdvertising",
+      "image_prompt": "Dark background (#0B0E12). Abstract browser window frame with a glowing lime green (#9CFF5A) call-to-action button shape in the center. Below, 5 small abstract circular icons with cyan (#4DD6FF) glow representing tracking pixels. Abstract landing page concept. No text, no logos, no readable URL. 1200x627.",
+      "has_image": true
     }
   ],
   "week_3": [
     {
-      "day": "tuesday",
-      "time": "09:00",
-      "type": "product_launch",
-      "text": "Synter can now generate video ads with Google's Veo and launch them as YouTube campaigns — end to end.\n\nThe workflow:\n\n1. Describe your product and target audience\n2. Synter generates a video using Veo 3.1 (8-second clips optimized for YouTube)\n3. Uploads to YouTube automatically\n4. Creates a Demand Gen campaign targeting custom intent audiences\n5. Sets up conversion tracking via GTM\n\nFrom idea to live YouTube campaign in under 10 minutes. No video editor. No creative agency. No manual uploading.\n\nWe built this because YouTube is the most underutilized ad platform for startups. Most founders skip it because \"video is too expensive and time-consuming.\"\n\nIt doesn't have to be. AI agents just changed the economics of video advertising.\n\n#YouTubeAds #VideoMarketing #AIAgents",
-      "image_prompt": "Cinematic composition on dark background #0B0E12, a play button shape formed by converging light particles in lime #9CFF5A, surrounded by orbital rings in cyan #4DD6FF suggesting automated workflow, subtle motion blur effects, modern tech aesthetic, 1200x627 dimensions, no text"
-    },
-    {
-      "day": "wednesday",
-      "time": "09:00",
-      "type": "technical_deep_dive",
-      "text": "We added Reddit and TikTok to Synter's campaign automation. Here's what surprised us.\n\nReddit's v3 API is actually well-designed, but the post creation endpoint lives under /profiles/{profile_id}/posts — not under /ad_accounts/ where you'd expect it. That mismatch caused us a full day of debugging.\n\nTikTok's Events API uses a different auth pattern than most platforms: Access-Token header (not Bearer), and the ttclid click identifier travels through context.ad.callback, not a top-level field.\n\nThe conversion tracking story is interesting too. We now send server-side events to 7 platforms in parallel: Meta CAPI, Google Offline Conversions, Reddit CAPI, LinkedIn CAPI, X CAPI, TikTok Events API, and Microsoft Ads.\n\nEvery conversion fires once. Synter fans it out to every platform that needs it. Deduplication handled via conversion_id.\n\nThis is what full-funnel, cross-platform attribution should look like — and it runs silently in the background.\n\n#ConversionTracking #AdTech #MarTech",
-      "image_prompt": "Network diagram on dark background #0B0E12, a central glowing point emitting seven symmetrical beams in lime #9CFF5A radiating outward to seven smaller nodes arranged in a circle, each node connected by thin cyan #4DD6FF lines, representing parallel event distribution, modern tech aesthetic, 1200x627 dimensions, no text"
-    },
-    {
-      "day": "thursday",
-      "time": "09:00",
+      "day": "Tuesday",
+      "time": "08:00 PT",
       "type": "thought_leadership",
-      "text": "Conversion tracking is broken — and most marketers don't realize it.\n\nHere's the reality:\n\n• iOS 14+ killed client-side pixel accuracy\n• Cookie deprecation is making attribution worse every quarter\n• Each ad platform reports different conversion numbers for the same event\n• GA4 uses data-driven attribution that doesn't match any platform's self-reported numbers\n\nThe solution isn't better pixels. It's server-side event distribution.\n\nSynter captures conversions at the server level and sends them to every platform simultaneously: Meta CAPI, Google Offline, Reddit CAPI, LinkedIn CAPI, TikTok Events API, X CAPI, and Microsoft Ads.\n\nSame event. Same timestamp. Same user identifiers (hashed). Every platform gets first-party signal quality.\n\nThe result: more accurate attribution, better bidding algorithm performance, and lower CPAs across the board.\n\nIf you're still relying on client-side pixels in 2026, you're leaving money on the table.\n\n#Attribution #MarTech #ConversionTracking",
-      "image_prompt": "Abstract visualization on dark background #0B0E12, a broken fragmented circle on the left side in muted gray tones, transitioning to a complete unified circle on the right side glowing in lime #9CFF5A with cyan #4DD6FF connecting segments, representing broken vs fixed tracking, modern tech aesthetic, 1200x627 dimensions, no text"
+      "text": "The ad platforms don't want you to manage campaigns outside their dashboards.\n\nGoogle's Smart Campaigns push you toward full automation \u2014 their automation, optimized for their revenue.\n\nMeta's Advantage+ removes targeting controls and tells you to \"trust the algorithm.\"\n\nLinkedIn's campaign manager hasn't had a meaningful UX improvement in years.\n\nHere's the problem: each platform optimizes for its own inventory. None of them will tell you that your LinkedIn CPL is 3x your Google CPL for the same audience, and you should shift budget.\n\nCross-platform optimization requires a layer that sits above all of them. A layer that:\n\n\u2022 Sees performance across every platform simultaneously\n\u2022 Understands that a $12 CPA on Google and a $38 CPA on LinkedIn for the same conversion means something\n\u2022 Can reallocate budget in real-time based on actual cross-channel data\n\u2022 Isn't incentivized to keep you spending on any single platform\n\nThis is the role AI agents are built for. Not replacing the platforms \u2014 orchestrating them.\n\nThe media buyer who operates across 7 platforms from a single interface will outperform the one toggling between 7 dashboards every time.\n\n#PaidMedia #AIAgents #DigitalMarketing #MediaBuying",
+      "image_prompt": "Dark background (#0B0E12). Abstract orbital visualization: 7 small glowing spheres in different subtle colors orbiting around a central lime green (#9CFF5A) node. Thin gradient lines show budget flow between nodes, some thicker than others suggesting reallocation. Abstract orchestration concept. No text, no logos. 1200x627.",
+      "has_image": true
+    },
+    {
+      "day": "Wednesday",
+      "time": "09:00 PT",
+      "type": "build_in_public",
+      "text": "We track conversion events across 7 platforms simultaneously. Here's how.\n\nWhen someone signs up on syntermedia.ai, a single function fires server-side events to:\n\n\u2022 Meta CAPI (SHA-256 hashed email + fbclid + fbc cookie)\n\u2022 Google Ads (gclid + enhanced conversions)\n\u2022 Reddit CAPI (rdt_cid + _rdt_uuid cookie)\n\u2022 LinkedIn CAPI (li_fat_id + conversion_rule_id)\n\u2022 X Conversion API (twclid)\n\u2022 TikTok Events API (ttclid + _ttp cookie)\n\u2022 Microsoft Ads (msclkid + hashed PII)\n\nAll 7 calls fire in parallel. Deduplication handled by a shared conversion_id.\n\nOur middleware captures every click ID from URL parameters \u2014 gclid, fbclid, rdt_cid, li_fat_id, twclid, ttclid, msclkid \u2014 stores them in first-party cookies, and passes them through the entire funnel.\n\nWhy server-side? Browser privacy changes (ITP, cookie restrictions, ad blockers) drop 20-40% of client-side conversion events. Server-side tracking recovers most of that.\n\nWe built this for ourselves first. Now every Synter user gets the same infrastructure automatically when they connect their ad accounts.\n\nThe tracking code nobody wants to write is the tracking code that matters most.\n\n#PerformanceMarketing #AdTech #AIAgents #MarketingAutomation",
+      "image_prompt": "Dark background (#0B0E12). Abstract architecture diagram: a single source node at top branching into 7 parallel lime green (#9CFF5A) beams flowing to 7 target nodes at bottom, each with a small cyan (#4DD6FF) checkmark glow. Data flow visualization. No text, no logos, no brand names. 1200x627.",
+      "has_image": true
+    },
+    {
+      "day": "Thursday",
+      "time": "08:30 PT",
+      "type": "case_study",
+      "text": "Competitor analysis that actually builds campaigns.\n\nMost competitive intelligence tools show you what competitors are running. Synter takes it further.\n\nThe workflow:\n\n1. Synter scrapes the Meta Ads Library for a competitor's active campaigns (via Apify \u2014 direct scraping gets blocked by Meta's bot detection)\n\n2. AI analyzes the creative patterns:\n   \u2192 What hooks are they using?\n   \u2192 What CTAs convert?\n   \u2192 What visual styles dominate?\n   \u2192 What copy structure appears most often?\n\n3. Synter generates NEW creatives inspired by those patterns \u2014 with YOUR brand, YOUR messaging, YOUR value props\n\n4. The creatives are generated via Imagen 4 (images) or Veo (video), saved to your artifact store, and ready to deploy\n\n5. One more message in chat: \"Launch these as a Display campaign with $75/day budget\" \u2014 and it's live\n\nFrom competitor insight to live campaign in a single conversation.\n\nThis isn't about copying ads. It's about understanding what's working in your market and responding faster than manual teams can.\n\nsynter does the research, the creative, and the execution. You provide the strategy.\n\nsyntermedia.ai\n\n#AIAgents #DigitalMarketing #PaidMedia #AdTech",
+      "image_prompt": "Dark background (#0B0E12). Three connected abstract panels: first shows a magnifying glass shape over grid patterns, second shows sparkle/generation effects in lime green (#9CFF5A), third shows an upward arrow with cyan (#4DD6FF) glow representing launch. Connected by flowing gradient arrows. No text, no logos. 1200x627.",
+      "has_image": true
     }
   ],
   "week_4": [
     {
-      "day": "tuesday",
-      "time": "09:00",
-      "type": "build_in_public",
-      "text": "We open-sourced Synter's MCP server. Here's why.\n\nThe Model Context Protocol is becoming the standard for how AI agents interact with tools. Claude, GPT, Gemini — they all support it. But advertising has been left out of the conversation.\n\nSynter's MCP server gives any AI agent the ability to:\n→ Pull campaign performance across 7+ ad platforms\n→ Create and launch campaigns programmatically\n→ Generate creatives with Imagen 4 and Veo\n→ Manage budgets and pause underperformers\n→ Run competitor analysis\n→ Set up conversion tracking\n\nWe believe the future of advertising is agent-native. And that future should be accessible to every team, not just those with six-figure agency retainers.\n\nThe MCP server is available at mcp.syntermedia.ai. Documentation, tool catalog, and integration guides are all public.\n\nIf you're building AI agents that touch advertising, we want to hear from you.\n\n#OpenSource #MCP #AIAgents",
-      "image_prompt": "Open source community visualization on dark background #0B0E12, branching tree structure growing upward with glowing lime #9CFF5A nodes at branch tips, trunk and branches in cyan #4DD6FF, roots spreading wide at the base, suggesting organic growth and open contribution, modern tech aesthetic, 1200x627 dimensions, no text"
+      "day": "Tuesday",
+      "time": "09:00 PT",
+      "type": "product_launch",
+      "text": "Synter generates video ads with Veo and launches them as YouTube campaigns \u2014 from a single prompt.\n\nThe workflow:\n\n\u2192 You describe the video concept in chat\n\u2192 Synter generates an 8-second video using Google's Veo model\n\u2192 Video is uploaded to YouTube automatically\n\u2192 A Demand Gen campaign is created targeting custom intent audiences\n\u2192 Headlines, descriptions, and business name are set\n\u2192 Geo-targeting and budget are configured\n\u2192 Campaign launches in PAUSED state for your review\n\nWhy Demand Gen and not a Video campaign? Because Google's Ads API doesn't support creating Video campaigns programmatically. It only supports reporting on existing ones.\n\nDemand Gen campaigns serve video ads on YouTube, YouTube Shorts, Discover, and Gmail \u2014 covering the same inventory with full API support.\n\nSynter knows these API limitations and routes around them automatically. You don't need to know that the Video campaign type is report-only. You just say \"promote this on YouTube\" and Synter picks the right campaign type.\n\nThat's the difference between a dashboard and an agent.\n\nsyntermedia.ai\n\n#AIAgents #AdTech #ProgrammaticAdvertising #MediaBuying",
+      "image_prompt": "Dark background (#0B0E12). Abstract video player shape with a large lime green (#9CFF5A) play button triangle in center, surrounded by floating abstract geometric shapes representing different content surfaces. Cinematic glow effects. No text, no logos. 1200x627.",
+      "has_image": true
     },
     {
-      "day": "wednesday",
-      "time": "09:00",
-      "type": "technical_deep_dive",
-      "text": "Performance Max is Google's most complex campaign type. Here's how Synter handles it.\n\nPMax requires an atomic bulk mutate request. You can't create the campaign first and add assets later — everything ships in one API call:\n\n• Campaign budget\n• Campaign (AdvertisingChannelType.PERFORMANCE_MAX)\n• Asset group\n• All asset group assets (headlines, descriptions, images, logos)\n\nMinimum asset requirements:\n— 3 headlines (30 chars each)\n— 1 long headline (90 chars)\n— 2 descriptions (90 chars)\n— 1 landscape image (1.91:1)\n— 1 square image (1:1)\n— 1 logo (1:1, min 128x128)\n— 1 business name (25 chars)\n\nSynter validates all of this before the API call. If you're missing assets, it generates them. Wrong aspect ratio? It resizes. Headline too long? It rewrites.\n\nThe result: PMax campaigns that launch on the first try, every time.\n\nThis is what happens when you build advertising tools for reliability, not just features.\n\n#GoogleAds #PerformanceMax #AdTech",
-      "image_prompt": "Exploded isometric diagram on dark background #0B0E12, showing layered components stacking together into a unified structure, individual layers in translucent lime #9CFF5A and cyan #4DD6FF with varying opacity, suggesting atomic assembly of campaign components, geometric precision, modern tech aesthetic, 1200x627 dimensions, no text"
+      "day": "Wednesday",
+      "time": "08:30 PT",
+      "type": "comparison",
+      "text": "What happens when you ask a dashboard vs. an AI agent to \"optimize my campaigns\"?\n\nDashboard:\n\u2022 Shows you charts\n\u2022 You interpret the data\n\u2022 You decide what to change\n\u2022 You navigate to each platform\n\u2022 You make changes one by one\n\u2022 You check back in 24-48 hours\n\u2022 Total time: 3-5 hours\n\nSynter AI Agent:\n\u2022 Pulls performance from all 7 platforms (30 seconds)\n\u2022 Identifies underperformers by CPA, ROAS, and spend pacing\n\u2022 Recommends specific changes with reasoning\n\u2022 Executes approved changes immediately\n\u2022 Reallocates budget cross-platform\n\u2022 Generates fresh creatives for fatigued ad sets\n\u2022 Total time: 5-10 minutes\n\nThe data is the same. The analysis is the same. The difference is execution speed.\n\nMedia buying has always been a speed game. Budgets burn every hour. The faster you identify and act on performance shifts, the less waste.\n\nAI agents don't make media buyers obsolete. They make slow media buying obsolete.\n\nsyntermedia.ai\n\n#AIAgents #PerformanceMarketing #PaidMedia #DigitalMarketing",
+      "image_prompt": "Dark background (#0B0E12). Two abstract clock/timer shapes. Left one is large, slow, with red (#E4453A) indicators suggesting inefficiency. Right one is compact, fast, with lime green (#9CFF5A) checkmarks and cyan (#4DD6FF) speed lines. Speed comparison concept. No text, no numbers, no logos. 1200x627.",
+      "has_image": true
     },
     {
-      "day": "thursday",
-      "time": "09:00",
-      "type": "industry_insight",
-      "text": "The advertising industry is about to split into two worlds.\n\nWorld 1: Marketers who manually manage campaigns across platforms, spend hours in dashboards, and measure success by how busy they look.\n\nWorld 2: Marketers who deploy AI agents that execute campaigns autonomously, optimize in real-time, and report results proactively.\n\nThis isn't speculation. It's already happening.\n\nThe tools exist today. MCP servers connect AI agents to ad platforms. Server-side conversion tracking provides accurate attribution. AI generates creatives at scale. Automated bidding optimizes spend 24/7.\n\nThe gap between these two worlds will only widen. And the marketers in World 2 won't just be more efficient — they'll be operating at a fundamentally different scale.\n\nAt Synter, we're building the infrastructure for World 2. AI Agent Media Buyers that execute your strategy while you focus on the decisions that actually matter.\n\nThe future of advertising isn't more dashboards. It's better agents.\n\n#FutureOfAdvertising #AIAgents #MarTech",
-      "image_prompt": "Futuristic horizon scene on dark background #0B0E12, a glowing horizon line in lime #9CFF5A with ascending geometric shapes above it in cyan #4DD6FF, light rays emanating upward suggesting dawn of a new era, subtle grid pattern on the ground plane, modern tech aesthetic, aspirational composition, 1200x627 dimensions, no text"
+      "day": "Thursday",
+      "time": "08:00 PT",
+      "type": "thought_leadership",
+      "text": "Every advertising platform is building their own AI. Here's why that's a problem.\n\nGoogle has Performance Max. Meta has Advantage+. LinkedIn has Accelerate. TikTok has Smart Performance.\n\nEach one optimizes for its own inventory. Each one wants more of your budget. None of them will tell you to spend less on their platform.\n\nThis creates a structural conflict of interest:\n\n\u2192 Google's AI will never recommend shifting budget to Meta\n\u2192 Meta's AI will never suggest your LinkedIn campaigns are more efficient\n\u2192 LinkedIn's AI will never tell you TikTok reaches the same audience cheaper\n\nThe missing layer is a platform-agnostic AI agent that:\n\n\u2022 Has no inventory to sell\n\u2022 Sees performance across every channel\n\u2022 Optimizes for YOUR business metrics, not platform revenue\n\u2022 Can execute changes on any platform in real-time\n\nThis is exactly what we're building at Synter.\n\nNot another ad platform. Not another dashboard. An execution layer that works FOR advertisers, across ALL platforms, with zero inventory bias.\n\nThe next generation of media buying isn't happening inside any single platform. It's happening above all of them.\n\nsyntermedia.ai\n\n#MediaBuying #AIAgents #AdTech #MarketingAutomation",
+      "image_prompt": "Dark background (#0B0E12). Abstract pyramid with 3 layers. Bottom layer has 4 competing arrows pulling in different directions in muted colors. Top layer shows a single lime green (#9CFF5A) node sitting above with a calm glow and thin connection lines to everything below. Platform agnostic orchestration concept. No text, no logos. 1200x627.",
+      "has_image": true
     }
   ]
 }

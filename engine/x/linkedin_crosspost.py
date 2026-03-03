@@ -20,6 +20,7 @@ Env vars:
 Usage:
     python -m engine.x.linkedin_crosspost --next
     python -m engine.x.linkedin_crosspost --text "custom post"
+    python -m engine.x.linkedin_crosspost --text "post with image" --image /path/to/image.png
     python -m engine.x.linkedin_crosspost --dry-run --next
 """
 
@@ -202,9 +203,76 @@ def adapt_for_linkedin(post: dict) -> str:
     return adapted
 
 
-def post_to_linkedin(token: str, org_urn: str, text: str) -> dict:
-    """Post text content to LinkedIn organization page via REST Posts API."""
+def upload_image_to_linkedin(token: str, org_urn: str, image_path: str) -> str:
+    """Upload an image to LinkedIn and return the image URN.
+
+    Steps:
+    1. Initialize upload to get uploadUrl and image URN
+    2. PUT binary image data to the uploadUrl
+    3. Return the image URN for use in posts
+    """
     import httpx
+
+    image_file = Path(image_path)
+    if not image_file.exists():
+        raise FileNotFoundError(f"Image not found: {image_path}")
+
+    image_data = image_file.read_bytes()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "LinkedIn-Version": "202510",
+        "X-Restli-Protocol-Version": "2.0.0",
+    }
+
+    with httpx.Client(timeout=60.0) as client:
+        # Step 1: Initialize upload
+        init_resp = client.post(
+            "https://api.linkedin.com/rest/images?action=initializeUpload",
+            headers=headers,
+            json={"initializeUploadRequest": {"owner": org_urn}},
+        )
+        init_resp.raise_for_status()
+        init_data = init_resp.json()
+        upload_url = init_data["value"]["uploadUrl"]
+        image_urn = init_data["value"]["image"]
+
+        # Step 2: Upload binary image
+        upload_resp = client.put(
+            upload_url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/octet-stream",
+            },
+            content=image_data,
+        )
+        upload_resp.raise_for_status()
+
+    logger.info("uploaded image to LinkedIn: %s", image_urn)
+    return image_urn
+
+
+def post_to_linkedin(token: str, org_urn: str, text: str, image_path: str | None = None) -> dict:
+    """Post content to LinkedIn organization page via REST Posts API.
+
+    If image_path is provided, uploads the image first and creates an image post.
+    Otherwise creates a text-only post.
+    """
+    import httpx
+
+    # Upload image first if provided
+    image_urn = None
+    if image_path:
+        try:
+            image_urn = upload_image_to_linkedin(token, org_urn, image_path)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 401:
+                return {"success": False, "error": "401: LinkedIn token expired"}
+            return {"success": False, "error": f"Image upload failed: {e.response.status_code}: {e.response.text[:300]}"}
+        except FileNotFoundError as e:
+            return {"success": False, "error": str(e)}
+        except Exception as e:
+            return {"success": False, "error": f"Image upload failed: {e}"}
 
     url = "https://api.linkedin.com/rest/posts"
     headers = {
@@ -226,6 +294,14 @@ def post_to_linkedin(token: str, org_urn: str, text: str) -> dict:
         "lifecycleState": "PUBLISHED",
     }
 
+    if image_urn:
+        body["content"] = {
+            "media": {
+                "title": Path(image_path).stem if image_path else "Image",
+                "id": image_urn,
+            }
+        }
+
     with httpx.Client(timeout=30.0) as client:
         response = client.post(url, headers=headers, json=body)
 
@@ -240,7 +316,7 @@ def post_to_linkedin(token: str, org_urn: str, text: str) -> dict:
             return {"success": False, "error": f"LinkedIn {response.status_code}: {error_body}"}
 
         post_id = response.headers.get("x-restli-id", response.headers.get("X-RestLi-Id", ""))
-        return {"success": True, "post_id": post_id, "org": org_urn}
+        return {"success": True, "post_id": post_id, "org": org_urn, "has_image": image_urn is not None}
 
 
 def get_next_crosspost(calendar: dict, posted: set, linkedin_posted: set) -> tuple:
@@ -268,6 +344,7 @@ def main():
     parser.add_argument("--index", type=int, help="Cross-post specific index")
     parser.add_argument("--week", default="week_1", help="Week to use with --index")
     parser.add_argument("--text", help="Post custom text to LinkedIn")
+    parser.add_argument("--image", help="Path to image file to include in post")
     parser.add_argument("--all-pending", action="store_true", help="Cross-post all pending items")
     parser.add_argument("--dry-run", action="store_true", help="Preview without posting")
     args = parser.parse_args()
@@ -276,11 +353,17 @@ def main():
         if len(args.text) > 3000:
             print(json.dumps({"success": False, "error": f"Text exceeds 3000 chars ({len(args.text)})"}))
             sys.exit(1)
+        if args.image and not Path(args.image).exists():
+            print(json.dumps({"success": False, "error": f"Image not found: {args.image}"}))
+            sys.exit(1)
         if args.dry_run:
-            print(json.dumps({"success": True, "dry_run": True, "text": args.text, "chars": len(args.text)}))
+            info = {"success": True, "dry_run": True, "text": args.text, "chars": len(args.text)}
+            if args.image:
+                info["image"] = args.image
+            print(json.dumps(info))
             return
         token, org_urn = get_linkedin_auth()
-        result = _retry_with_refresh(post_to_linkedin, token, org_urn, args.text)
+        result = _retry_with_refresh(post_to_linkedin, token, org_urn, args.text, image_path=args.image)
         print(json.dumps(result, indent=2))
         return
 
