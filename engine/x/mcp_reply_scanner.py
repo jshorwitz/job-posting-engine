@@ -32,6 +32,7 @@ REPLIED_LOG = _DATA_DIR / ".x_mcp_replied_log.json"
 
 # Search queries targeting Claude + Facebook Ads + MCP tweets
 SEARCH_QUERIES = [
+    # Original MCP-specific queries
     '"Claude" "Facebook Ads" MCP',
     '"Claude" "Facebook Ads" "MCP server"',
     '"Claude" "Meta Ads" MCP',
@@ -40,6 +41,27 @@ SEARCH_QUERIES = [
     'MCP "ad reporting" Claude',
     '"Facebook Ads" MCP integration',
     'Claude MCP "ads manager"',
+    # Broader Claude Code + ads queries (catches vibe-coders building ad tools)
+    '"Claude Code" "Meta Ads"',
+    '"Claude Code" "Facebook Ads"',
+    '"Claude Code" "ads manager"',
+    '"Claude Code" "ad campaign"',
+    '"vibe code" "Meta Ads"',
+    '"vibe code" "Facebook Ads"',
+    '"vibe coded" "Meta Ads"',
+    '"vibe coded" "Facebook Ads"',
+    '"Claude" "Meta Ads" bulk',
+    '"Claude" "Meta Ads" automation',
+    '"Claude" "ads manager" API',
+    # AI ads dashboards / analytics (competitors like Graphed, Supermetrics, etc.)
+    'AI "paid ads" dashboard',
+    'AI "ads KPI" dashboard',
+    'AI analyst "Facebook Ads"',
+    'AI analyst "Google Ads"',
+    '"data warehouse" "Facebook Ads" AI',
+    'MCP "paid ads"',
+    'MCP "Google Ads"',
+    'MCP "LinkedIn Ads"',
 ]
 
 REPLY_SYSTEM_PROMPT = """\

@@ -32,6 +32,7 @@ CANDIDATES_PATH = _DATA_DIR / ".x_scan_candidates.json"
 ENGAGED_LOG = _DATA_DIR / ".x_engaged_log.json"
 
 SEARCH_QUERIES = [
+    # Original queries
     "AI ad campaign management",
     "MCP advertising",
     "cross-platform ad automation",
@@ -42,6 +43,25 @@ SEARCH_QUERIES = [
     "programmatic AI agents",
     "ad tech MCP server",
     "cursor for marketing",
+    # Broader: vibe-coding ad tools, Claude Code + ads
+    '"Claude Code" ads',
+    '"Claude Code" "Meta Ads"',
+    '"Claude Code" "Facebook Ads"',
+    '"vibe code" ads',
+    '"vibe coded" ads',
+    '"Claude" "Marketing API"',
+    '"Claude" "ads manager"',
+    '"Claude" "ad campaigns"',
+    "AI ad automation tool",
+    "built ad tool with AI",
+    # AI ads dashboards / analytics competitors
+    'AI "paid ads" dashboard',
+    'AI "ads KPI"',
+    'AI analyst "Facebook Ads"',
+    'AI "ad reporting" dashboard',
+    'MCP "Google Ads"',
+    'MCP "LinkedIn Ads"',
+    'MCP "paid ads"',
 ]
 
 # Templates for auto-generated engagement comments (founder voice)
