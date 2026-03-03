@@ -34,6 +34,7 @@ POST_HOURS_UTC = [17, 22, 0]
 LINKEDIN_POST_HOUR_UTC = 17
 LINKEDIN_POST_DAYS = {1, 2, 3}  # Tue, Wed, Thu (0=Mon)
 SCAN_INTERVAL_HOURS = int(os.environ.get("X_ENGAGEMENT_SCAN_INTERVAL_HOURS", "4"))
+MCP_REPLY_INTERVAL_HOURS = int(os.environ.get("X_MCP_REPLY_INTERVAL_HOURS", "2"))
 POLL_INTERVAL_SECONDS = 60  # Check every minute
 
 
@@ -134,6 +135,8 @@ def _crosspost_to_linkedin(post_id: str, post: dict):
 
 
 LINKEDIN_NATIVE_ENABLED = os.environ.get("LINKEDIN_NATIVE_POSTING_ENABLED", "true").lower() != "false"
+MCP_REPLY_ENABLED = os.environ.get("X_MCP_REPLY_SCANNER_ENABLED", "true").lower() != "false"
+MCP_REPLY_MAX = int(os.environ.get("X_MCP_REPLY_MAX_PER_RUN", "5"))
 
 
 def should_linkedin_post_now(last_li_date: str | None) -> bool:
@@ -169,6 +172,30 @@ def run_linkedin_post():
         logger.error("LinkedIn native post failed: %s", e, exc_info=True)
 
 
+def should_mcp_reply_now(last_mcp_reply_time: float) -> bool:
+    """Check if enough time has passed since last MCP reply scan."""
+    elapsed = time.time() - last_mcp_reply_time
+    return elapsed >= MCP_REPLY_INTERVAL_HOURS * 3600
+
+
+def run_mcp_replies():
+    """Scan for Claude+Facebook Ads+MCP tweets and reply."""
+    try:
+        from engine.x.mcp_reply_scanner import run_scan_and_reply
+
+        result = run_scan_and_reply(max_replies=MCP_REPLY_MAX)
+        sent = [r for r in result.get("replies", []) if r.get("status") == "sent"]
+        logger.info(
+            "MCP reply scan: %d candidates, %d replies sent",
+            result.get("candidates_found", 0), len(sent),
+        )
+        for r in sent:
+            logger.info("  replied to %s: %s", r.get("author"), r.get("reply_url"))
+
+    except Exception as e:
+        logger.error("MCP reply scan failed: %s", e, exc_info=True)
+
+
 def run_scan():
     """Scan for engagement opportunities."""
     try:
@@ -196,7 +223,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="X Growth Engine Scheduler")
-    parser.add_argument("--once", choices=["post", "scan", "linkedin"], help="Run once and exit")
+    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies"], help="Run once and exit")
     args = parser.parse_args()
 
     if args.once == "post":
@@ -207,6 +234,9 @@ def main():
         return
     if args.once == "linkedin":
         run_linkedin_post()
+        return
+    if args.once == "mcp-replies":
+        run_mcp_replies()
         return
 
     # Long-lived scheduler loop
@@ -224,10 +254,12 @@ def main():
     logger.info("  X post times (UTC): %s", POST_HOURS_UTC)
     logger.info("  LinkedIn post: Tue-Thu at %d:00 UTC", LINKEDIN_POST_HOUR_UTC)
     logger.info("  scan interval: every %d hours", SCAN_INTERVAL_HOURS)
+    logger.info("  MCP reply scan: every %d hours (%s)", MCP_REPLY_INTERVAL_HOURS, "enabled" if MCP_REPLY_ENABLED else "disabled")
     logger.info("  LinkedIn native posting: %s", "enabled" if LINKEDIN_NATIVE_ENABLED else "disabled")
 
     last_post_hour: int | None = None
     last_scan_time: float = 0  # scan immediately on startup
+    last_mcp_reply_time: float = 0  # scan immediately on startup
     last_li_date: str | None = None
 
     while running:
@@ -247,6 +279,11 @@ def main():
                 logger.info("scanning for engagement...")
                 run_scan()
                 last_scan_time = time.time()
+
+            if MCP_REPLY_ENABLED and should_mcp_reply_now(last_mcp_reply_time):
+                logger.info("scanning for Claude+Facebook Ads+MCP tweets...")
+                run_mcp_replies()
+                last_mcp_reply_time = time.time()
 
         except Exception as e:
             logger.error("scheduler loop error: %s", e, exc_info=True)

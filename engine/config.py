@@ -89,6 +89,8 @@ class Settings(BaseSettings):
     x_content_poster_enabled: bool = True
     x_engagement_scanner_enabled: bool = True
     x_linkedin_crosspost_enabled: bool = True
+    x_mcp_reply_scanner_enabled: bool = True
+    x_mcp_reply_max_per_run: int = 5
 
     # --- LinkedIn Org Posting (cross-post from X) ---
     linkedin_access_token: str = ""

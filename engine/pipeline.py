@@ -1228,6 +1228,10 @@ def main() -> None:
         help="Custom comment for X engagement",
     )
     parser.add_argument(
+        "--x-mcp-replies", action="store_true",
+        help="Scan for Claude+Facebook Ads+MCP tweets and auto-reply",
+    )
+    parser.add_argument(
         "--li-crosspost", action="store_true",
         help="Cross-post next eligible X post to LinkedIn",
     )
@@ -1319,6 +1323,13 @@ def main() -> None:
             print(_json.dumps({"success": False, "error": f"index {args.x_engage} out of range (have {len(candidates)})"}))
             return
         result = engage_candidate(candidates[args.x_engage], args.x_comment)
+        print(_json.dumps(result, indent=2))
+        return
+
+    if args.x_mcp_replies:
+        from engine.x.mcp_reply_scanner import run_scan_and_reply
+        import json as _json
+        result = run_scan_and_reply(max_replies=5, dry_run=settings.dry_run)
         print(_json.dumps(result, indent=2))
         return
 
