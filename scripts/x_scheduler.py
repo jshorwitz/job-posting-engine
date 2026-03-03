@@ -50,6 +50,8 @@ def should_scan_now(last_scan_time: float) -> bool:
 
 
 LINKEDIN_CROSSPOST_ENABLED = os.environ.get("X_LINKEDIN_CROSSPOST_ENABLED", "true").lower() != "false"
+LINKEDIN_NATIVE_ENABLED = os.environ.get("LINKEDIN_CONTENT_POSTER_ENABLED", "true").lower() != "false"
+LINKEDIN_POST_HOUR_UTC = 17  # 9am PT
 
 
 def run_post():
@@ -130,6 +132,69 @@ def _crosspost_to_linkedin(post_id: str, post: dict):
         logger.error("LinkedIn cross-post error for %s: %s", post_id, e)
 
 
+def should_post_linkedin_now(last_linkedin_hour: int | None) -> bool:
+    """Check if current time is LinkedIn posting time (9am PT = 17:00 UTC, Tue-Thu only)."""
+    now = datetime.now(timezone.utc)
+    if now.weekday() not in (1, 2, 3):  # Tue=1, Wed=2, Thu=3
+        return False
+    if now.hour == LINKEDIN_POST_HOUR_UTC and now.hour != last_linkedin_hour:
+        return True
+    return False
+
+
+def run_linkedin_post():
+    """Post next scheduled item from the LinkedIn-native content calendar."""
+    try:
+        from engine.x.linkedin_scheduled_post import (
+            load_calendar, load_posted_log, save_posted_log,
+            get_next_post, LINKEDIN_DAYS,
+        )
+        from engine.x.linkedin_generate_image import generate_image
+        from engine.x.linkedin_org_post import post_to_linkedin_native
+
+        calendar = load_calendar()
+        posted = load_posted_log()
+        post_id, post = get_next_post(calendar, posted)
+
+        if not post:
+            logger.info("LinkedIn content calendar exhausted, all posts sent")
+            return
+
+        # Generate image if the post has an image_prompt
+        image_path = None
+        image_prompt = post.get("image_prompt")
+        if image_prompt:
+            logger.info("generating LinkedIn image for %s...", post_id)
+            img_result = generate_image(image_prompt, output_name=post_id.replace("/", "_"))
+            if img_result.get("success"):
+                image_path = img_result["image_path"]
+                logger.info("image saved: %s", image_path)
+            else:
+                logger.warning("image generation failed: %s (posting without image)", img_result.get("error"))
+
+        # Post to LinkedIn
+        text = post.get("text", "")
+        result = post_to_linkedin_native(text, image_path=image_path)
+
+        if result.get("success"):
+            posted[post_id] = {
+                "posted_at": datetime.now(timezone.utc).isoformat(),
+                "post_urn": result.get("post_urn", ""),
+                "image_path": image_path,
+            }
+            save_posted_log(posted)
+            logger.info(
+                "posted to LinkedIn: %s (%s %s) %s",
+                post_id, post.get("day"), post.get("type"),
+                result.get("post_urn", ""),
+            )
+        else:
+            logger.warning("LinkedIn post failed for %s: %s", post_id, result.get("error"))
+
+    except Exception as e:
+        logger.error("LinkedIn native post failed: %s", e, exc_info=True)
+
+
 def run_scan():
     """Scan for engagement opportunities."""
     try:
@@ -157,7 +222,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="X Growth Engine Scheduler")
-    parser.add_argument("--once", choices=["post", "scan"], help="Run once and exit")
+    parser.add_argument("--once", choices=["post", "scan", "linkedin"], help="Run once and exit")
     args = parser.parse_args()
 
     if args.once == "post":
@@ -165,6 +230,9 @@ def main():
         return
     if args.once == "scan":
         run_scan()
+        return
+    if args.once == "linkedin":
+        run_linkedin_post()
         return
 
     # Long-lived scheduler loop
@@ -178,20 +246,29 @@ def main():
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
 
-    logger.info("X Growth Engine scheduler started")
-    logger.info("  post times (UTC): %s", POST_HOURS_UTC)
-    logger.info("  scan interval: every %d hours", SCAN_INTERVAL_HOURS)
+    logger.info("X + LinkedIn Growth Engine scheduler started")
+    logger.info("  X post times (UTC): %s", POST_HOURS_UTC)
+    logger.info("  X scan interval: every %d hours", SCAN_INTERVAL_HOURS)
+    logger.info("  LinkedIn native posting: %s (Tue-Thu at 17:00 UTC / 9am PT)",
+                "enabled" if LINKEDIN_NATIVE_ENABLED else "disabled")
 
     last_post_hour: int | None = None
+    last_linkedin_hour: int | None = None
     last_scan_time: float = 0  # scan immediately on startup
 
     while running:
         try:
             if should_post_now(last_post_hour):
                 now = datetime.now(timezone.utc)
-                logger.info("posting (hour=%d UTC)...", now.hour)
+                logger.info("posting to X (hour=%d UTC)...", now.hour)
                 run_post()
                 last_post_hour = now.hour
+
+            if LINKEDIN_NATIVE_ENABLED and should_post_linkedin_now(last_linkedin_hour):
+                now = datetime.now(timezone.utc)
+                logger.info("posting to LinkedIn (hour=%d UTC, day=%s)...", now.hour, now.strftime("%A"))
+                run_linkedin_post()
+                last_linkedin_hour = now.hour
 
             if should_scan_now(last_scan_time):
                 logger.info("scanning for engagement...")

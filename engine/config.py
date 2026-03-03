@@ -93,7 +93,15 @@ class Settings(BaseSettings):
     # --- LinkedIn Org Posting (cross-post from X) ---
     linkedin_access_token: str = ""
     linkedin_refresh_token: str = ""
+    linkedin_client_id: str = ""
+    linkedin_client_secret: str = ""
     linkedin_org_urn: str = "urn:li:organization:4803356"
+
+    # --- LinkedIn Native Content Engine ---
+    linkedin_content_poster_enabled: bool = True
+
+    # --- Google Gemini / Imagen ---
+    gemini_api_key: str = ""
 
     # --- Database ---
     database_path: str = "data/outreach.db"
