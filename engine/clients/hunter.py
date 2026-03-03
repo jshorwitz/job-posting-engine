@@ -107,6 +107,55 @@ class HunterClient:
             logger.error(f"Hunter timeout for {full_name} @ {domain}")
             return None
 
+    def find_domain(self, company_name: str) -> str | None:
+        """Resolve a company name to its domain using Hunter's Domain Search.
+
+        Uses the `company` parameter of the domain-search endpoint, which
+        accepts a company name and returns the associated domain + emails.
+        This is free (1 search credit per call).
+
+        Args:
+            company_name: Company name (e.g. "Stripe", "Intercom").
+
+        Returns:
+            Domain string (e.g. "stripe.com") or None if not found.
+        """
+        if not company_name or len(company_name.strip()) < 2:
+            return None
+
+        params = {
+            "company": company_name.strip(),
+            "limit": 1,
+            "api_key": self.api_key,
+        }
+
+        try:
+            with httpx.Client(timeout=15.0) as client:
+                resp = client.get(f"{BASE_URL}/domain-search", params=params)
+
+            if resp.status_code == 200:
+                data = resp.json().get("data", {})
+                domain = data.get("domain")
+                if domain:
+                    logger.info(f"Hunter: resolved '{company_name}' → {domain}")
+                    return domain
+                logger.debug(f"Hunter: no domain found for '{company_name}'")
+                return None
+
+            if resp.status_code == 429:
+                logger.warning("Hunter: rate limited on domain search")
+                time.sleep(5)
+                return None
+
+            logger.debug(
+                f"Hunter domain-search returned {resp.status_code} for '{company_name}'"
+            )
+            return None
+
+        except httpx.TimeoutException:
+            logger.error(f"Hunter timeout resolving domain for '{company_name}'")
+            return None
+
     def verify_email(self, email: str) -> dict[str, Any] | None:
         """Verify an email address deliverability.
 

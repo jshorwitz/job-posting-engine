@@ -80,6 +80,7 @@ def send_email(
             "emailSubject": subject,
             "companyName": company_name,
             "jobTitle": job_title,
+            "jobTitleHiring": job_title,
         },
     )
 

@@ -62,8 +62,19 @@ class SumbleClient:
             job_title, datetime_pulled, primary_job_function, location,
             teams, description, url, matched_technologies
         """
-        # Build title keywords for optional client-side matching
-        title_keywords = [kw.lower() for kw in query.split() if len(kw) > 2]
+        # Build title keywords for client-side matching.
+        # Include broad marketing/growth leadership terms so we capture
+        # hiring managers, not just exact query matches.
+        _extra_title_keywords = [
+            "marketing", "growth", "demand gen", "demand generation",
+            "digital marketing", "performance marketing", "paid media",
+            "paid acquisition", "ppc", "sem", "cmo", "head of",
+            "vp of marketing", "director of marketing", "brand",
+        ]
+        title_keywords = list({
+            kw.lower()
+            for kw in query.split() if len(kw) > 2
+        } | {kw for kw in _extra_title_keywords})
 
         # Default to last 90 days if no since date
         if not since:
@@ -133,15 +144,16 @@ class SumbleClient:
     # People
     # ------------------------------------------------------------------
 
-    def find_ceo(
+    def find_contact(
         self,
         organization_domain: str | None = None,
         organization_id: int | None = None,
     ) -> dict[str, Any] | None:
-        """Find the CEO/founder at a company.
+        """Find the best outreach contact at a company.
 
-        Searches for C-suite / Executive level people and picks the
-        most likely CEO from the results.
+        Searches for marketing leadership first (VP Marketing, CMO,
+        Director of Growth — the hiring manager), then falls back to
+        CEO/founder if no marketing leader is found.
 
         Args:
             organization_domain: Company domain (e.g. "stripe.com")
@@ -151,7 +163,6 @@ class SumbleClient:
             Person dict with keys: id, name, job_title, job_function,
             job_level, linkedin_url, url — or None if not found.
         """
-        # Build organization identifier
         org: dict[str, Any]
         if organization_id is not None:
             org = {"id": organization_id}
@@ -160,48 +171,85 @@ class SumbleClient:
         else:
             return None
 
-        payload: dict[str, Any] = {
-            "organization": org,
-            "filters": {
-                "job_functions": ["Executive"],
-                "job_levels": [],
+        # Priority-ordered searches: marketing leadership → executives
+        searches = [
+            {
+                "label": "marketing leader",
+                "filters": {
+                    "job_functions": ["Marketing"],
+                    "job_levels": ["VP", "Director", "CXO"],
+                },
+                "preferred_keywords": [
+                    "vp marketing", "vp of marketing", "vice president marketing",
+                    "cmo", "chief marketing", "head of marketing", "head of growth",
+                    "director of marketing", "director of growth",
+                    "director of demand", "director of digital",
+                ],
             },
-            "limit": 10,
-            "offset": 0,
-        }
+            {
+                "label": "executive",
+                "filters": {
+                    "job_functions": ["Executive"],
+                    "job_levels": [],
+                },
+                "preferred_keywords": [
+                    "ceo", "chief executive", "founder", "co-founder",
+                ],
+            },
+        ]
 
         with httpx.Client(timeout=30.0) as client:
-            resp = self._post(client, "/people/find", payload)
+            for search in searches:
+                payload: dict[str, Any] = {
+                    "organization": org,
+                    "filters": search["filters"],
+                    "limit": 10,
+                    "offset": 0,
+                }
 
-        if resp is None:
-            return None
+                resp = self._post(client, "/people/find", payload)
+                if resp is None:
+                    continue
 
-        people = resp.get("people", [])
-        if not people:
-            logger.debug(
-                f"No executives found for org domain={organization_domain} "
-                f"id={organization_id}"
-            )
-            return None
+                people = resp.get("people", [])
+                if not people:
+                    continue
 
-        # Prefer CEO/Founder titles, then fall back to first executive
-        ceo_keywords = ["ceo", "chief executive", "founder", "co-founder"]
-        for person in people:
-            title = (person.get("job_title") or "").lower()
-            if any(kw in title for kw in ceo_keywords):
+                # Prefer keyword-matched titles
+                for person in people:
+                    title = (person.get("job_title") or "").lower()
+                    if any(kw in title for kw in search["preferred_keywords"]):
+                        logger.info(
+                            f"Found {search['label']}: {person.get('name')} "
+                            f"({person.get('job_title')}) @ {organization_domain}"
+                        )
+                        return person
+
+                # Fall back to first result from this search
+                first = people[0]
                 logger.info(
-                    f"Found CEO: {person.get('name')} ({person.get('job_title')}) "
+                    f"No exact title match, using top {search['label']}: "
+                    f"{first.get('name')} ({first.get('job_title')}) "
                     f"@ {organization_domain}"
                 )
-                return person
+                return first
 
-        # Fall back to first executive result
-        first = people[0]
-        logger.info(
-            f"No CEO title match, using top executive: {first.get('name')} "
-            f"({first.get('job_title')}) @ {organization_domain}"
+        logger.debug(
+            f"No contacts found for org domain={organization_domain} "
+            f"id={organization_id}"
         )
-        return first
+        return None
+
+    def find_ceo(
+        self,
+        organization_domain: str | None = None,
+        organization_id: int | None = None,
+    ) -> dict[str, Any] | None:
+        """Find the CEO/founder at a company. Delegates to find_contact."""
+        return self.find_contact(
+            organization_domain=organization_domain,
+            organization_id=organization_id,
+        )
 
     # ------------------------------------------------------------------
     # Internal

@@ -103,5 +103,9 @@ class Settings(BaseSettings):
     # --- Google Gemini / Imagen ---
     gemini_api_key: str = ""
 
+    # --- Adzuna (job search aggregator — fallback/alternative to Sumble) ---
+    adzuna_app_id: str = ""
+    adzuna_api_key: str = ""
+
     # --- Database ---
     database_path: str = "data/outreach.db"

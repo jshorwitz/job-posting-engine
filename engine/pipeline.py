@@ -141,9 +141,9 @@ def run(
         )
         return stats
 
-    if use_email and settings.hunter_api_key:
+    if settings.hunter_api_key:
         hunter = HunterClient(settings)
-        logger.info("Hunter.io email enrichment enabled")
+        logger.info("Hunter.io enabled (email enrichment + domain discovery)")
     elif use_email:
         logger.warning("Email channel selected but HUNTER_API_KEY not set — emails won't be sent")
 
@@ -153,6 +153,13 @@ def run(
     if use_linkedin and not settings.dry_run:
         from engine.outreach.linkedin_sender import LinkedInAutomation
         li_automation = LinkedInAutomation(settings)
+
+    # Adzuna client (lazy-init only if configured)
+    adzuna = None
+    if settings.adzuna_app_id and settings.adzuna_api_key:
+        from engine.clients.adzuna import AdzunaClient
+        adzuna = AdzunaClient(settings)
+        logger.info("Adzuna job search enabled (fallback/supplement to Sumble)")
 
     try:
         # ── Step 1: Fetch job postings ───────────────────────────────
@@ -173,13 +180,44 @@ def run(
                 datetime.now(timezone.utc) - timedelta(days=settings.job_since_days)
             ).strftime("%Y-%m-%d")
 
-            jobs = sumble.find_jobs(
-                query=settings.job_query,
-                technologies=technologies,
-                countries=countries,
-                limit=settings.max_emails_per_run * 3,
-                since=since,
-            )
+            jobs = []
+            if sumble:
+                jobs = sumble.find_jobs(
+                    query=settings.job_query,
+                    technologies=technologies,
+                    countries=countries,
+                    limit=settings.max_emails_per_run * 3,
+                    since=since,
+                )
+
+            # Always supplement with Adzuna if configured (Sumble inventory is limited)
+            if adzuna:
+                needed = settings.max_emails_per_run * 3 - len(jobs)
+                logger.info(
+                    f"Sumble returned {len(jobs)} jobs — supplementing with Adzuna"
+                )
+                adzuna_queries = [
+                    "head of growth",
+                    "performance marketing manager",
+                    "growth marketing",
+                    "paid media manager",
+                    "demand generation",
+                    "digital marketing director",
+                ]
+                seen_ids = {j.get("id") for j in jobs}
+                for q in adzuna_queries:
+                    if len(jobs) >= settings.max_emails_per_run * 3:
+                        break
+                    adzuna_jobs = adzuna.find_jobs(
+                        query=q,
+                        country=(countries[0].lower() if countries else "us"),
+                        limit=min(needed, 50),
+                    )
+                    for aj in adzuna_jobs:
+                        if aj["id"] not in seen_ids:
+                            seen_ids.add(aj["id"])
+                            jobs.append(aj)
+                logger.info(f"Total jobs after Adzuna supplement: {len(jobs)}")
 
         for job in jobs:
             if stats["processed"] >= settings.max_emails_per_run:
@@ -194,6 +232,13 @@ def run(
             job_url = job.get("url", "")
             location = job.get("location", "")
             posted_at = job.get("datetime_pulled", "")
+
+            # ── Step 1b: Resolve missing domain via Hunter ─────────────
+            if not org_domain and org_name and hunter:
+                org_domain = hunter.find_domain(org_name)
+                if org_domain:
+                    logger.info(f"Resolved domain for {org_name} → {org_domain}")
+                time.sleep(0.1)
 
             # ── Step 2: Deduplicate by job ID ────────────────────────
             if session.query(JobPosting).filter_by(sumble_job_id=job_id).first():
@@ -240,7 +285,7 @@ def run(
             session.commit()
             stats["new_jobs"] += 1
 
-            # ── Step 5: Find CEO/founder ─────────────────────────────
+            # ── Step 5: Find contact (marketing leader → CEO) ────────
             # Check CSV contacts first, then fall back to Sumble API
             csv_key = (org_domain or org_name or "").lower()
             csv_contact = csv_contact_map.get(csv_key)
@@ -253,7 +298,7 @@ def run(
                     "linkedin_url": csv_contact.get("linkedin_url", ""),
                 }
             elif sumble:
-                ceo = sumble.find_ceo(
+                ceo = sumble.find_contact(
                     organization_domain=org_domain,
                     organization_id=org_id,
                 )
@@ -262,7 +307,7 @@ def run(
                 ceo = None
 
             if not ceo:
-                logger.info(f"No executive found for {org_name} ({org_domain}) — skipping")
+                logger.info(f"No contact found for {org_name} ({org_domain}) — skipping")
                 stats["failed"] += 1
                 continue
 
