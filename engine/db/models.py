@@ -5,7 +5,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -217,6 +217,7 @@ class PlatformScan(Base):
     """
 
     __tablename__ = "platform_scans"
+    __table_args__ = (UniqueConstraint("company_domain", "platform", name="uq_domain_platform"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     company_domain: Mapped[str] = mapped_column(String(255), index=True)

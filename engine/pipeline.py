@@ -985,13 +985,21 @@ def run_enrichment(
                 )
                 session.add(followup)
 
-                # Record per-platform scan results for prioritization
+                # Record per-platform scan results for prioritization (upsert)
                 installed = lead_data.get("builtwith_installed_pixels", [])
                 missing = lead_data.get("builtwith_missing_pixels", [])
-                for platform in installed:
-                    session.add(PlatformScan(company_domain=domain, platform=platform, detected=True))
-                for platform in missing:
-                    session.add(PlatformScan(company_domain=domain, platform=platform, detected=False))
+                for platform, detected in [
+                    *((p, True) for p in installed),
+                    *((p, False) for p in missing),
+                ]:
+                    existing = session.query(PlatformScan).filter_by(
+                        company_domain=domain, platform=platform,
+                    ).first()
+                    if existing:
+                        existing.detected = detected
+                        existing.scanned_at = datetime.now(timezone.utc)
+                    else:
+                        session.add(PlatformScan(company_domain=domain, platform=platform, detected=detected))
 
                 session.commit()
 
