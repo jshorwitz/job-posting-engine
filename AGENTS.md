@@ -51,7 +51,7 @@ doppler run --project synter-media --config prd -- python -m engine.pipeline --f
 ## Project Structure
 
 ```
-job-posting-engine/
+growth-engine/
 ├── engine/
 │   ├── ai/
 │   │   ├── email_writer.py        # Initial cold email generation

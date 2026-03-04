@@ -14,11 +14,20 @@ RUN useradd --create-home appuser
 WORKDIR /home/appuser/app
 
 COPY pyproject.toml .
+
+# Install dependencies only (no project install yet — source not copied)
 RUN pip install --no-cache-dir --upgrade pip \
- && pip install --no-cache-dir .
+ && pip install --no-cache-dir \
+      httpx>=0.27.0 sqlalchemy>=2.0.0 openai>=1.30.0 \
+      pydantic-settings>=2.1.0 python-dotenv>=1.0.1 \
+      playwright>=1.49.0 requests-oauthlib>=2.0.0 \
+      requests>=2.32.0 google-genai>=1.0.0
 
 COPY engine/ ./engine/
 COPY scripts/ ./scripts/
+
+# Now install the project (source is available for hatchling)
+RUN pip install --no-cache-dir .
 
 RUN mkdir -p data logs && chown -R appuser:appuser /home/appuser/app
 

@@ -1,6 +1,6 @@
-# Job Posting Growth Engine
+# Growth Engine
 
-Standalone tool that monitors [Sumble.com](https://sumble.com) for companies hiring growth marketing leaders (Head of Growth, VP Growth, etc.), finds the CEO/founder, and sends personalized outreach via **LinkedIn Sales Navigator** or email.
+Automated cold outbound engine that discovers companies hiring growth/marketing leadership roles (via Sumble), enriches them with competitive intelligence (SpyFu, BuiltWith, Firecrawl), and sends narrative-driven outreach via **LinkedIn Sales Navigator**, email, or **Loops.so**.
 
 ## How It Works
 
@@ -123,7 +123,7 @@ Sumble Pro: $99/mo = 9,900 credits → **~49 runs/month**
 ## Project Structure
 
 ```
-job-posting-engine/
+growth-engine/
 ├── engine/
 │   ├── config.py               # Settings via pydantic-settings + .env
 │   ├── pipeline.py             # Main orchestrator
@@ -172,9 +172,9 @@ Sumble People API returns LinkedIn URLs but not email addresses. To enable email
 
 ```bash
 # One-shot run (note: LinkedIn automation requires headed browser, not ideal for Docker)
-docker build -t job-engine .
-docker run --env-file .env -v $(pwd)/data:/home/appuser/app/data job-engine
+docker build -t growth-engine .
+docker run --env-file .env -v $(pwd)/data:/home/appuser/app/data growth-engine
 
 # With cron (add to host crontab)
-0 8 * * * docker run --rm --env-file /path/to/.env -v /path/to/data:/home/appuser/app/data job-engine
+0 8 * * * docker run --rm --env-file /path/to/.env -v /path/to/data:/home/appuser/app/data growth-engine
 ```

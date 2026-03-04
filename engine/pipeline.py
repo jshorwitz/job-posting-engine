@@ -53,7 +53,7 @@ from engine.db.models import (
     RunLog,
 )
 
-LOG_PREFIX = "[JobPostingEngine]"
+LOG_PREFIX = "[GrowthEngine]"
 
 
 def run(
@@ -1106,7 +1106,7 @@ def run_enrichment(
                 first_name=first_name,
                 last_name=last_name,
                 company=lead.get("company_name", ""),
-                source="job-posting-engine-enrichment",
+                source="growth-engine-enrichment",
                 custom_properties=props,
             )
             if ok:

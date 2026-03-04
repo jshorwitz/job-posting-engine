@@ -74,7 +74,7 @@ def send_email(
         first_name=first_name,
         last_name=last_name,
         company=company_name,
-        source="job-posting-engine",
+        source="growth-engine",
         custom_properties={
             "emailBody": html_body,
             "emailSubject": subject,
@@ -172,7 +172,7 @@ def enrich_for_followup(
     success = add_contact(
         settings=settings,
         email=to_email,
-        source="job-posting-engine",
+        source="growth-engine",
         custom_properties=properties,
     )
 
@@ -211,7 +211,7 @@ def add_contact(
     first_name: str = "",
     last_name: str = "",
     company: str = "",
-    source: str = "job-posting-engine",
+    source: str = "growth-engine",
     custom_properties: dict | None = None,
 ) -> bool:
     """Add or update a contact in Loops.

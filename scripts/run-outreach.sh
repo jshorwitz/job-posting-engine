@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cron runner for the Job Posting Outreach Engine.
+# Cron runner for the Growth Engine.
 # Customize ENGINE_DIR and secrets source for your setup.
 
 set -euo pipefail
@@ -15,8 +15,11 @@ echo "=== Outreach run started at $(date -u +%Y-%m-%dT%H:%M:%SZ) ===" >> "$LOG_F
 # If using Doppler for secrets, wrap with: doppler run --project <project> --config <env> --
 # Otherwise, ensure env vars are set (e.g., via .env or Railway/Docker env).
 
+# Prefer python3 (macOS ships python3, not python)
+PYTHON="${PYTHON:-$(command -v python3 || command -v python)}"
+
 DRY_RUN="${DRY_RUN:-false}" \
-  python -m engine.pipeline \
+  "$PYTHON" -m engine.pipeline \
     --channel email \
     --limit "${MAX_EMAILS_PER_RUN:-20}" \
   >> "$LOG_FILE" 2>&1

@@ -92,7 +92,7 @@ curl -X POST "https://app.loops.so/api/v1/contacts/delete" \
 
 > **UI: Loops → Audience → Lists → Create List**
 
-- **Name:** `Cold Outreach - Job Posting Engine`
+- **Name:** `Cold Outreach - Growth Engine`
 - **Description:** Leads from job posting signals, enriched with SpyFu/BuiltWith data
 - Copy the **List ID** from the list settings page
 
@@ -146,7 +146,39 @@ Set the **From address** for the automation to: `joel@mail.syntermedia.ai`
 ### Trigger
 
 - **Trigger type:** Contact added to list
-- **List:** `Cold Outreach - Job Posting Engine`
+- **List:** `Cold Outreach - Growth Engine`
+
+### Pre-built MJML Templates
+
+All 18 emails have been compiled to production-ready HTML with:
+- **Space Grotesk** font (Synter brand)
+- Personal email styling (no marketing template look)
+- Joel Horwitz signature with syntermedia.ai link
+- Unsubscribe footer
+- Full Outlook/Gmail/Apple Mail compatibility
+
+```
+templates/cold-outreach/emails/
+├── 01-the-signal.html          ← Paste into Loops code editor
+├── 02-setup-tax.html
+├── ...
+└── 18-clean-break.html
+```
+
+**To rebuild after editing sequence.py:**
+```bash
+python3 scripts/build-mjml-templates.py
+```
+
+### How to use in Loops
+
+For each email step in the automation:
+
+1. Click **+ Add step** → **Send email**
+2. Set the **Subject** line (from table below)
+3. Click **Edit email** → switch to **Code** editor (top-right toggle)
+4. Paste the contents of the corresponding `.html` file
+5. Click **Save**
 
 ### Automation Steps
 
@@ -593,7 +625,7 @@ Joel
 ### 5a. Send a test lead through the pipeline
 
 ```bash
-# From the job-posting-engine directory, with Doppler secrets:
+# From the growth-engine directory, with Doppler secrets:
 doppler run -- python3 -m engine.pipeline --enrich --export loops --dry-run --limit 1
 ```
 
@@ -609,7 +641,7 @@ Check that all enrichment properties are populated.
 ### 5c. Test the automation
 
 1. In Loops, find the test contact
-2. Manually add them to the `Cold Outreach - Job Posting Engine` list
+2. Manually add them to the `Cold Outreach - Growth Engine` list
 3. Verify Email 1 sends immediately
 4. Check the automation shows the contact in the flow
 
@@ -628,26 +660,26 @@ Monitor in Loops → Loops → your automation → Activity tab.
 
 ## Automation Delay Summary
 
-| Step | Email | Delay | Cumulative Day |
-|------|-------|-------|----------------|
-| 1 | The Signal | Immediate | 0 |
-| 2 | 30-Day Setup Tax | +3 days | 3 |
-| 3 | Landing Page Delay | +2 days | 5 |
-| 4 | $50-100K Burn | +2 days | 7 |
-| 5 | Hyper-Targeting | +3 days | 10 |
-| 6 | Keyword Waste | +3 days | 13 |
-| 7 | Ad Copy Teardown | +3 days | 16 |
-| 8 | Keyword Gap | +3 days | 19 |
-| 9 | AI Agents | +3 days | 22 |
-| 10 | SEO vs Paid | +3 days | 25 |
-| 11 | Landing Pages | +3 days | 28 |
-| 12 | Cross-Platform | +3 days | 31 |
-| 13 | ROI Calculator | +3 days | 34 |
-| 14 | Free Credits | +3 days | 37 |
-| 15 | Case Study | +3 days | 40 |
-| 16 | Both Is the Answer | +4 days | 44 |
-| 17 | Pattern Interrupt | +4 days | 48 |
-| 18 | Clean Break | +4 days | 52 |
+| Step | Email | Subject Line | Delay | Day | Zip Template |
+|------|-------|-------------|-------|-----|--------------|
+| 1 | The Signal | `{{jobTitleHiring}} hire` | Immediate | 0 | `01-the-signal.zip` |
+| 2 | 30-Day Setup Tax | `day 1 of 90` | +3 days | 3 | `02-setup-tax.zip` |
+| 3 | Landing Page Delay | `day 30 of 90` | +2 days | 5 | `03-landing-page-delay.zip` |
+| 4 | $50-100K Burn | `day 60 of 90` | +2 days | 7 | `04-50k-burn.zip` |
+| 5 | Hyper-Targeting | `the algorithm excuse is nonsense` | +3 days | 10 | `05-hyper-targeting.zip` |
+| 6 | Keyword Waste | `{{spyfu_waste_keywords}} keywords doing nothing` | +3 days | 13 | `06-keyword-waste.zip` |
+| 7 | Ad Copy Teardown | `your best ad is {{spyfu_top_ad_days}} days old` | +3 days | 16 | `07-ad-copy-teardown.zip` |
+| 8 | Keyword Gap | `{{spyfu_gap_keyword}}` | +3 days | 19 | `08-keyword-gap.zip` |
+| 9 | AI Agents | `what if the agency was an AI agent` | +3 days | 22 | `09-ai-agents.zip` |
+| 10 | SEO vs Paid | `your organic clicks are worth {{spyfu_organic_click_value}}` | +3 days | 25 | `10-seo-vs-paid.zip` |
+| 11 | Landing Pages | `10 minutes to a landing page` | +3 days | 28 | `11-landing-pages.zip` |
+| 12 | Cross-Platform | `7 platforms, 1 agent` | +3 days | 31 | `12-cross-platform.zip` |
+| 13 | ROI Calculator | `the math` | +3 days | 34 | `13-roi-calculator.zip` |
+| 14 | Free Credits | `200 free credits` | +3 days | 37 | `14-free-credits.zip` |
+| 15 | Case Study | `how a {{builtwith_tech_stack}} company cut CPA 35%` | +3 days | 40 | `15-case-study.zip` |
+| 16 | Both Is the Answer | `hire the person too` | +4 days | 44 | `16-both-is-the-answer.zip` |
+| 17 | Pattern Interrupt | `did I miss the mark?` | +4 days | 48 | `17-pattern-interrupt.zip` |
+| 18 | Clean Break | `last one from me` | +4 days | 52 | `18-clean-break.zip` |
 
 ---
 

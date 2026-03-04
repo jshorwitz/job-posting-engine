@@ -1,7 +1,7 @@
 [project]
-name = "job-posting-growth-engine"
+name = "growth-engine"
 version = "0.1.0"
-description = "Monitors Sumble.com for Head of Growth hires, finds the CEO, and sends personalized outreach via OpenAI + SMTP."
+description = "Automated growth engine: discovers companies hiring growth/marketing leadership, enriches with competitive intelligence, and sends narrative-driven outreach."
 requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.27.0",

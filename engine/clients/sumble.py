@@ -34,7 +34,7 @@ class SumbleClient:
         self._headers = {
             "Authorization": f"Bearer {settings.sumble_api_key}",
             "Content-Type": "application/json",
-            "User-Agent": "JobPostingEngine/1.0",
+            "User-Agent": "GrowthEngine/1.0",
         }
 
     # ------------------------------------------------------------------
