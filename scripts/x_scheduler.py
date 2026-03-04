@@ -35,6 +35,8 @@ LINKEDIN_POST_HOUR_UTC = 17
 LINKEDIN_POST_DAYS = {1, 2, 3}  # Tue, Wed, Thu (0=Mon)
 SCAN_INTERVAL_HOURS = int(os.environ.get("X_ENGAGEMENT_SCAN_INTERVAL_HOURS", "4"))
 MCP_REPLY_INTERVAL_HOURS = int(os.environ.get("X_MCP_REPLY_INTERVAL_HOURS", "2"))
+ENRICHMENT_HOUR_UTC = 14  # 9 AM ET
+ENRICHMENT_DAYS = {0, 1, 2, 3, 4}  # Mon-Fri
 POLL_INTERVAL_SECONDS = 60  # Check every minute
 
 
@@ -196,6 +198,28 @@ def run_mcp_replies():
         logger.error("MCP reply scan failed: %s", e, exc_info=True)
 
 
+def should_enrich_now(last_enrich_date: str | None) -> bool:
+    """Check if it's time for enrichment pipeline (Mon-Fri at 9am ET / 14:00 UTC)."""
+    now = datetime.now(timezone.utc)
+    today_str = now.strftime("%Y-%m-%d")
+    if now.hour == ENRICHMENT_HOUR_UTC and now.weekday() in ENRICHMENT_DAYS and today_str != last_enrich_date:
+        return True
+    return False
+
+
+def run_enrichment():
+    """Run the enrichment + Loops export pipeline."""
+    try:
+        from engine.config import Settings
+        from engine.pipeline import run_enrichment as _run_enrichment
+
+        settings = Settings()
+        stats = _run_enrichment(settings=settings, export_target="loops")
+        logger.info("enrichment complete: %s", stats)
+    except Exception as e:
+        logger.error("enrichment pipeline failed: %s", e, exc_info=True)
+
+
 def run_scan():
     """Scan for engagement opportunities."""
     try:
@@ -250,17 +274,19 @@ def main():
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
 
-    logger.info("X + LinkedIn Growth Engine scheduler started")
+    logger.info("Growth Engine scheduler started")
     logger.info("  X post times (UTC): %s", POST_HOURS_UTC)
     logger.info("  LinkedIn post: Tue-Thu at %d:00 UTC", LINKEDIN_POST_HOUR_UTC)
     logger.info("  scan interval: every %d hours", SCAN_INTERVAL_HOURS)
     logger.info("  MCP reply scan: every %d hours (%s)", MCP_REPLY_INTERVAL_HOURS, "enabled" if MCP_REPLY_ENABLED else "disabled")
     logger.info("  LinkedIn native posting: %s", "enabled" if LINKEDIN_NATIVE_ENABLED else "disabled")
+    logger.info("  enrichment pipeline: Mon-Fri at %d:00 UTC", ENRICHMENT_HOUR_UTC)
 
     last_post_hour: int | None = None
     last_scan_time: float = 0  # scan immediately on startup
     last_mcp_reply_time: float = 0  # scan immediately on startup
     last_li_date: str | None = None
+    last_enrich_date: str | None = None
 
     while running:
         try:
@@ -284,6 +310,11 @@ def main():
                 logger.info("scanning for Claude+Facebook Ads+MCP tweets...")
                 run_mcp_replies()
                 last_mcp_reply_time = time.time()
+
+            if should_enrich_now(last_enrich_date):
+                logger.info("running enrichment pipeline...")
+                run_enrichment()
+                last_enrich_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
         except Exception as e:
             logger.error("scheduler loop error: %s", e, exc_info=True)

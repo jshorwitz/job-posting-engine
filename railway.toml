@@ -2,17 +2,7 @@
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# Enrichment pipeline: run daily at 9 AM ET (14:00 UTC) on weekdays
-cronSchedule = "0 14 * * 1-5"
-
-# NOTE: The X Growth Engine runs as a SEPARATE Railway service
-# using the same Dockerfile but with a custom start command:
-#   doppler run -- python scripts/x_scheduler.py
-#
-# Railway setup:
-# 1. Create a new service in the same Railway project
-# 2. Point it to this same repo
-# 3. Set Start Command: doppler run -- python scripts/x_scheduler.py
-# 4. Remove the cron schedule (it's a long-lived process)
-# 5. Add a /data volume mount for persistent state files
-# 6. Set DOPPLER_TOKEN env var for secrets injection
+# Long-lived scheduler: handles X posting, LinkedIn, engagement scans,
+# MCP reply scanning, AND enrichment pipeline (Mon-Fri 9am ET).
+# No cron needed — the scheduler polls every 60s internally.
+startCommand = "doppler run -- python scripts/x_scheduler.py"
