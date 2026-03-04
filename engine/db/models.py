@@ -206,3 +206,20 @@ class DripState(Base):
     enrolled_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     last_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class PlatformScan(Base):
+    """Tracks ad platform pixel detection per domain from BuiltWith scans.
+
+    One row per (domain, platform) pair. Use to aggregate which platforms
+    leads are running and which are missing — helps prioritize platform
+    build-out.
+    """
+
+    __tablename__ = "platform_scans"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    company_domain: Mapped[str] = mapped_column(String(255), index=True)
+    platform: Mapped[str] = mapped_column(String(50), index=True)
+    detected: Mapped[bool] = mapped_column(Boolean, default=False)
+    scanned_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

@@ -23,7 +23,7 @@ BASE_URL = "https://api.builtwith.com/v21/api.json"
 TIMEOUT = 10.0
 
 # All ad platforms we track — used to compute "missing" platforms
-ALL_AD_PLATFORMS = {"Google", "Meta", "LinkedIn", "X", "Reddit", "Microsoft", "TikTok"}
+ALL_AD_PLATFORMS = {"Google", "Meta", "LinkedIn", "X", "Reddit", "Microsoft", "TikTok", "Snapchat", "Pinterest"}
 
 # Tech name → platform mapping (case-insensitive substring matching)
 _PLATFORM_MAP: list[tuple[str, str]] = [
@@ -39,6 +39,9 @@ _PLATFORM_MAP: list[tuple[str, str]] = [
     ("microsoft", "Microsoft"),
     ("bing", "Microsoft"),
     ("tiktok", "TikTok"),
+    ("snapchat", "Snapchat"),
+    ("snap pixel", "Snapchat"),
+    ("pinterest", "Pinterest"),
 ]
 
 # CRM tool detection (substring match on tech name)

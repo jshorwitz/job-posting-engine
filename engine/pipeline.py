@@ -50,6 +50,7 @@ from engine.db.models import (
     LinkedInOutreach,
     LinkedInOutreachStatus,
     OutreachType,
+    PlatformScan,
     RunLog,
 )
 
@@ -983,6 +984,15 @@ def run_enrichment(
                     status=FollowUpStatus.ENRICHED,
                 )
                 session.add(followup)
+
+                # Record per-platform scan results for prioritization
+                installed = lead_data.get("builtwith_installed_pixels", [])
+                missing = lead_data.get("builtwith_missing_pixels", [])
+                for platform in installed:
+                    session.add(PlatformScan(company_domain=domain, platform=platform, detected=True))
+                for platform in missing:
+                    session.add(PlatformScan(company_domain=domain, platform=platform, detected=False))
+
                 session.commit()
 
                 logger.info(
