@@ -22,6 +22,7 @@ from pathlib import Path
 
 from engine.x.linkedin_generate_image import generate_image
 from engine.x.linkedin_org_post import post_to_linkedin_native
+from engine.x.time_utils import PACIFIC_TZ, weekday_name
 
 
 CALENDAR_PATH = Path(__file__).parent / "linkedin_calendar.json"
@@ -60,9 +61,9 @@ def _get_week_keys(calendar: dict) -> list:
     return sorted(k for k in calendar if k.startswith("week_"))
 
 
-def get_next_post(calendar: dict, posted: dict) -> tuple:
+def get_next_post(calendar: dict, posted: dict, now=None) -> tuple:
     """Find the next unposted item matching today's day (Tue/Wed/Thu)."""
-    today = datetime.now(timezone.utc).strftime("%A").lower()
+    today = weekday_name(now, PACIFIC_TZ)
     week_keys = _get_week_keys(calendar)
 
     # Try today first

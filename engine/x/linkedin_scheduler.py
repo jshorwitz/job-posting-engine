@@ -18,6 +18,8 @@ import os
 import sys
 from pathlib import Path
 
+from engine.x.time_utils import PACIFIC_TZ, weekday_name
+
 logger = logging.getLogger(__name__)
 
 CALENDAR_PATH = Path(__file__).parent / "linkedin_calendar.json"
@@ -47,10 +49,9 @@ def _get_week_keys(calendar: dict) -> list:
     return sorted(k for k in calendar if k.startswith("week_"))
 
 
-def get_next_post(calendar: dict, posted: set) -> tuple:
+def get_next_post(calendar: dict, posted: set, now=None) -> tuple:
     """Find the next unposted LinkedIn post."""
-    from datetime import datetime, timezone
-    today = datetime.now(timezone.utc).strftime("%A").lower()
+    today = weekday_name(now, PACIFIC_TZ)
 
     # Try today first
     for wk in _get_week_keys(calendar):
