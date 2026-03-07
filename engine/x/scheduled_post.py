@@ -18,8 +18,9 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime, timezone
 from pathlib import Path
+
+from engine.x.time_utils import PACIFIC_TZ, weekday_name
 
 
 CALENDAR_PATH = Path(__file__).parent / "content_calendar.json"
@@ -81,9 +82,9 @@ def _get_week_keys(calendar: dict) -> list:
     return sorted(k for k in calendar if k.startswith("week_"))
 
 
-def get_next_post(calendar: dict, posted: set) -> tuple:
+def get_next_post(calendar: dict, posted: set, now=None) -> tuple:
     """Find the next unposted item based on current day."""
-    today = datetime.now(timezone.utc).strftime("%A").lower()
+    today = weekday_name(now, PACIFIC_TZ)
     week_keys = _get_week_keys(calendar)
 
     # Try today first, then future days, then wrap around
