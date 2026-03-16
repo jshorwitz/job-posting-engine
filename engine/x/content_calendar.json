@@ -272,5 +272,79 @@
       "type": "question",
       "text": "what's the best growth channel you've found that isn't paid ads\n\nfor us it's listicle placements\n\none email to an editor > $5k in ad spend"
     }
+  ],
+  "week_6": [
+    {
+      "day": "monday",
+      "time": "10:00",
+      "type": "hot_take",
+      "text": "you're running ads on 5 platforms\n\nyou have conversion tracking on 2 of them\n\nyou're flying blind on 60% of your spend\n\nand you wonder why your ROAS numbers don't add up"
+    },
+    {
+      "day": "monday",
+      "time": "14:00",
+      "type": "breakdown",
+      "text": "what synter sets up automatically when you connect an ad account\n\n> google ads conversion action + GTM tag\n> meta CAPI with hashed email + fbclid\n> linkedin CAPI with li_fat_id\n> reddit CAPI with rdt_cid\n> tiktok events API with ttclid\n> microsoft ads with msclkid\n> posthog event forwarding\n\nall server-side, all in parallel, zero manual pixel work"
+    },
+    {
+      "day": "tuesday",
+      "time": "09:30",
+      "type": "build_in_public",
+      "text": "shipped posthog integration yesterday\n\nevery ad conversion now fires a posthog event with full attribution data\n\nplatform, campaign, ad group, keyword, cost, click id\n\nyour product analytics and ad analytics in one place"
+    },
+    {
+      "day": "tuesday",
+      "time": "15:00",
+      "type": "hot_take",
+      "text": "google analytics tells you what happened\n\nposthog tells you why\n\nsynter connects both to your ad spend so you know what to do about it"
+    },
+    {
+      "day": "wednesday",
+      "time": "10:00",
+      "type": "breakdown",
+      "text": "the conversion tracking stack nobody wants to build\n\n> capture gclid, fbclid, ttclid, li_fat_id, rdt_cid, msclkid from URL params\n> store in first-party cookies\n> pass through signup → onboarding → purchase funnel\n> fire server-side events to all 7 platforms on conversion\n> deduplicate with a shared conversion_id\n\nsynter does this automatically\n\nyou just connect your accounts"
+    },
+    {
+      "day": "wednesday",
+      "time": "16:00",
+      "type": "question",
+      "text": "how many of you have GTM containers with tags you're afraid to touch because nobody remembers who added them or why\n\nbe honest"
+    },
+    {
+      "day": "thursday",
+      "time": "09:00",
+      "type": "build_in_public",
+      "text": "just shipped: synter auto-publishes your GTM container after adding conversion tags\n\nthe number of people who set up google ads conversion tracking, add the GTM tag, and forget to hit publish is wild\n\nwe fixed that"
+    },
+    {
+      "day": "thursday",
+      "time": "14:30",
+      "type": "hot_take",
+      "text": "ad blockers kill 30-40% of your client-side tracking events\n\nif you're still relying on pixel-based conversion tracking in 2026 you're leaving money on the table\n\nserver-side CAPI is not optional anymore"
+    },
+    {
+      "day": "friday",
+      "time": "10:00",
+      "type": "breakdown",
+      "text": "how synter builds custom audiences from your hubspot data\n\n> pull contact lists by lifecycle stage, deal status, or any property\n> hash emails (SHA-256) for privacy compliance\n> upload as custom audiences to meta, google, linkedin, tiktok\n> auto-refresh weekly so your audiences stay current\n\nretargeting your CRM segments across every platform from one command"
+    },
+    {
+      "day": "friday",
+      "time": "16:00",
+      "type": "hot_take",
+      "text": "the best custom audience isn't a lookalike\n\nit's your hubspot contacts who visited your pricing page, didn't convert, and are now seeing your ads on meta, linkedin, and google simultaneously\n\nthat's what synter builds"
+    },
+    {
+      "day": "saturday",
+      "time": "11:00",
+      "type": "casual",
+      "text": "saturday debugging: figured out why reddit's CAPI was silently dropping 40% of conversion events\n\nturns out the _rdt_uuid cookie expires after 90 days but they don't tell you\n\nserver-side tracking is 80% debugging undocumented API behavior"
+    },
+    {
+      "day": "sunday",
+      "time": "12:00",
+      "type": "question",
+      "text": "what's the most painful ad platform to set up conversion tracking on\n\nfor me it was reddit\n\nno documentation, no error messages, cookies that silently expire"
+    }
   ]
 }

@@ -150,5 +150,31 @@
       "image_prompt": "Dark background (#0B0E12). Abstract ROI comparison: left side shows coins/currency shapes falling and disappearing (muted orange/red tones suggesting recurring cost). Right side shows a single lime green (#9CFF5A) arrow pointing up with stacking horizontal bars getting wider over time suggesting compounding returns. Cyan (#4DD6FF) accent on the growth bars. No text, no logos, no numbers. 1200x627.",
       "has_image": true
     }
+  ],
+  "week_6": [
+    {
+      "day": "Tuesday",
+      "time": "09:00 PT",
+      "type": "thought_leadership",
+      "text": "Most advertisers are flying blind on 60% of their ad spend.\n\nHere's the uncomfortable truth: if you're running campaigns across Google, Meta, LinkedIn, Reddit, TikTok, and Microsoft Ads, chances are you only have reliable conversion tracking on 2-3 of those platforms.\n\nThe rest? You're trusting platform-reported numbers that overcount by 20-40% due to view-through attribution, or you're missing conversions entirely because your client-side pixels get blocked by ad blockers and browser privacy features.\n\nThis is why server-side conversion tracking (CAPI) isn't optional anymore:\n\n\u2022 Ad blockers strip 30-40% of client-side pixel events\n\u2022 Safari ITP caps first-party cookies at 7 days\n\u2022 Chrome is deprecating third-party cookies\n\u2022 Platform-reported conversions are self-attributed (biased by design)\n\nThe fix is server-side event APIs — Meta CAPI, Google Enhanced Conversions, LinkedIn CAPI, Reddit CAPI, TikTok Events API, Microsoft Offline Conversions.\n\nSynter sets up all 7 automatically when you connect your ad accounts. Every conversion fires server-side events to every platform in parallel, with proper click ID passthrough (gclid, fbclid, ttclid, li_fat_id, rdt_cid, msclkid) and SHA-256 hashed PII for privacy compliance.\n\nPlus, every conversion also fires a PostHog event with full attribution data — so your product analytics and ad analytics live in one place.\n\nNo GTM debugging. No pixel audits. No forgotten container publishes.\n\nsyntermedia.ai\n\n#PerformanceMarketing #ConversionTracking #AdTech #ServerSideTracking",
+      "image_prompt": "Dark background (#0B0E12). Abstract visualization of parallel data streams: 7 thin horizontal lime green (#9CFF5A) lines flowing from a single source point on the left to 7 target nodes on the right, each with a small cyan (#4DD6FF) checkmark pulse. A large translucent shield shape in the center suggesting server-side protection. No text, no logos. 1200x627.",
+      "has_image": true
+    },
+    {
+      "day": "Wednesday",
+      "time": "08:30 PT",
+      "type": "build_in_public",
+      "text": "We just shipped PostHog + Google Analytics integration for Synter campaigns.\n\nHere's what this means in practice:\n\nEvery time a Synter-managed ad drives a conversion, three things happen simultaneously:\n\n1. Server-side conversion events fire to the ad platform (Meta CAPI, Google Enhanced Conversions, etc.)\n2. A PostHog event fires with full attribution data: platform, campaign, ad group, keyword, cost, click ID\n3. Google Analytics receives the event via Measurement Protocol with proper UTM attribution\n\nWhy all three?\n\n\u2192 The ad platform needs the conversion to optimize bidding (ROAS, tCPA)\n\u2192 PostHog connects ad spend to product behavior (which campaigns drive users who actually retain?)\n\u2192 Google Analytics gives you the cross-channel view your CMO expects in their dashboard\n\nThe hardest part wasn't sending the events. It was capturing every platform's click ID from URL parameters, storing them in first-party cookies, and passing them through the entire signup \u2192 onboarding \u2192 purchase funnel without losing attribution.\n\nSynter handles this automatically. You connect your accounts, we handle the plumbing.\n\nThe tracking code nobody wants to write is the tracking code that matters most.\n\nsyntermedia.ai\n\n#BuildInPublic #MarketingAnalytics #PostHog #ConversionTracking",
+      "image_prompt": "Dark background (#0B0E12). Three layered abstract planes stacked vertically with slight perspective. Top plane has lime green (#9CFF5A) data flow arrows pointing right. Middle plane shows cyan (#4DD6FF) circular nodes representing analytics events. Bottom plane shows muted white connection lines forming a funnel shape. Data flowing between all three layers. No text, no logos. 1200x627.",
+      "has_image": true
+    },
+    {
+      "day": "Thursday",
+      "time": "08:00 PT",
+      "type": "case_study",
+      "text": "How Synter builds custom audiences from HubSpot data — and why it changes retargeting.\n\nThe traditional approach:\n\n\u2022 Export a CSV from HubSpot\n\u2022 Format emails for each platform's custom audience upload\n\u2022 Upload to Meta, Google, LinkedIn, TikTok separately\n\u2022 Wait 24-48 hours for matching\n\u2022 Repeat weekly to keep audiences fresh\n\u2022 Total time: 2-3 hours per week\n\nThe Synter approach:\n\n\u2022 Tell the AI agent: \"Build a retargeting audience from HubSpot contacts who visited our pricing page but didn't convert\"\n\u2022 Synter pulls contacts by lifecycle stage, deal status, page views, or any HubSpot property\n\u2022 Hashes emails (SHA-256) for privacy compliance\n\u2022 Uploads as custom audiences to Meta, Google, LinkedIn, and TikTok simultaneously\n\u2022 Auto-refreshes weekly so audiences stay current\n\u2022 Total time: one chat message\n\nThe real power: combining CRM data with ad platform targeting.\n\nInstead of broad lookalikes, you're retargeting people who are already in your pipeline — prospects who opened your emails, visited your pricing page, or started a trial but didn't convert.\n\nThat's a fundamentally different quality of audience than anything the ad platforms can build from their own data.\n\nsyntermedia.ai\n\n#PerformanceMarketing #HubSpot #CustomAudiences #PaidMedia",
+      "image_prompt": "Dark background (#0B0E12). Abstract CRM-to-advertising flow: a database cylinder shape on the left in muted gray, with lime green (#9CFF5A) user silhouette shapes flowing through a funnel/filter in the center, emerging as organized cyan (#4DD6FF) audience segments on the right connecting to 4 small platform nodes. No text, no logos, no brand names. 1200x627.",
+      "has_image": true
+    }
   ]
 }
