@@ -28,25 +28,25 @@ logging.basicConfig(
 )
 logger = logging.getLogger("x_scheduler")
 
-# X post times in UTC (9am PT = 17:00 UTC, 2pm PT = 22:00 UTC, 4pm PT = 00:00 UTC)
-POST_HOURS_UTC = [17, 22, 0]
-# LinkedIn posts at 9am PT = 17:00 UTC (Tue-Thu only, once per day)
-LINKEDIN_POST_HOUR_UTC = 17
-LINKEDIN_POST_DAYS = {1, 2, 3}  # Tue, Wed, Thu (0=Mon)
+from engine.x.time_utils import (
+    EASTERN_TZ,
+    ENRICHMENT_HOUR_ET,
+    LINKEDIN_POST_HOUR_PT,
+    PACIFIC_TZ,
+    X_POST_HOURS_PT,
+    date_str,
+    ensure_timezone,
+    should_enrich_now,
+    should_linkedin_post_now,
+    should_listicle_outreach_now,
+    should_post_now,
+    slot_key,
+)
+
+
 SCAN_INTERVAL_HOURS = int(os.environ.get("X_ENGAGEMENT_SCAN_INTERVAL_HOURS", "4"))
 MCP_REPLY_INTERVAL_HOURS = int(os.environ.get("X_MCP_REPLY_INTERVAL_HOURS", "2"))
-ENRICHMENT_HOUR_UTC = 14  # 9 AM ET
-ENRICHMENT_DAYS = {0, 1, 2, 3, 4}  # Mon-Fri
 POLL_INTERVAL_SECONDS = 60  # Check every minute
-
-
-def should_post_now(last_post_hour: int | None) -> bool:
-    """Check if current hour matches a post time and hasn't been posted this hour."""
-    now = datetime.now(timezone.utc)
-    current_hour = now.hour
-    if current_hour in POST_HOURS_UTC and current_hour != last_post_hour:
-        return True
-    return False
 
 
 def should_scan_now(last_scan_time: float) -> bool:
@@ -141,15 +141,6 @@ MCP_REPLY_ENABLED = os.environ.get("X_MCP_REPLY_SCANNER_ENABLED", "true").lower(
 MCP_REPLY_MAX = int(os.environ.get("X_MCP_REPLY_MAX_PER_RUN", "5"))
 
 
-def should_linkedin_post_now(last_li_date: str | None) -> bool:
-    """Check if it's time for a LinkedIn native post (Tue-Thu at 9am PT)."""
-    now = datetime.now(timezone.utc)
-    today_str = now.strftime("%Y-%m-%d")
-    if now.hour == LINKEDIN_POST_HOUR_UTC and now.weekday() in LINKEDIN_POST_DAYS and today_str != last_li_date:
-        return True
-    return False
-
-
 def run_linkedin_post():
     """Post next item from the LinkedIn content calendar with generated image."""
     try:
@@ -198,15 +189,6 @@ def run_mcp_replies():
         logger.error("MCP reply scan failed: %s", e, exc_info=True)
 
 
-def should_enrich_now(last_enrich_date: str | None) -> bool:
-    """Check if it's time for enrichment pipeline (Mon-Fri at 9am ET / 14:00 UTC)."""
-    now = datetime.now(timezone.utc)
-    today_str = now.strftime("%Y-%m-%d")
-    if now.hour == ENRICHMENT_HOUR_UTC and now.weekday() in ENRICHMENT_DAYS and today_str != last_enrich_date:
-        return True
-    return False
-
-
 def run_enrichment():
     """Run the enrichment + Loops export pipeline."""
     try:
@@ -243,11 +225,60 @@ def run_scan():
         logger.error("scan failed: %s", e, exc_info=True)
 
 
+LISTICLE_OUTREACH_ENABLED = os.environ.get("LISTICLE_OUTREACH_ENABLED", "true").lower() != "false"
+
+
+def run_listicle_outreach():
+    """Weekly listicle + podcast discovery → enrichment → outreach pipeline."""
+    try:
+        from engine.config import Settings
+        from engine.clients.hunter import HunterClient
+        from engine.db.database import init_db
+        from engine.listicle.scraper import discover_via_serper, store_targets
+        from engine.listicle.enricher import enrich_targets
+        from engine.listicle.outreach import send_outreach
+
+        settings = Settings()
+        SessionFactory = init_db(settings.database_path)
+        session = SessionFactory()
+
+        serper_key = getattr(settings, "serper_api_key", "")
+        if not serper_key:
+            logger.warning("listicle outreach skipped: SERPER_API_KEY not set")
+            return
+
+        # Step 1: Discover new targets (listicles + podcasts)
+        for target_type in ("listicle", "podcast"):
+            targets = discover_via_serper(serper_key, target_type=target_type)
+            stats = store_targets(session, targets)
+            logger.info("discovery [%s]: %d new, %d existing", target_type, stats["new"], stats["existing"])
+
+        # Step 2: Enrich with editor/host contacts
+        if settings.hunter_api_key:
+            hunter = HunterClient(settings)
+            for target_type in ("listicle", "podcast"):
+                e_stats = enrich_targets(session, hunter, limit=30, target_type=target_type)
+                logger.info("enrichment [%s]: %d contacts found", target_type, e_stats["enriched"])
+
+        # Step 3: Send outreach via Resend
+        if settings.resend_api_key:
+            for target_type in ("listicle", "podcast"):
+                o_stats = send_outreach(session, settings, limit=20, target_type=target_type)
+                logger.info("outreach [%s]: %d sent, %d failed", target_type, o_stats["sent"], o_stats["failed"])
+        else:
+            logger.warning("listicle outreach skipped send: RESEND_API_KEY not set")
+
+        session.close()
+
+    except Exception as e:
+        logger.error("listicle outreach pipeline failed: %s", e, exc_info=True)
+
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="X Growth Engine Scheduler")
-    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies"], help="Run once and exit")
+    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "listicle"], help="Run once and exit")
     args = parser.parse_args()
 
     if args.once == "post":
@@ -262,6 +293,9 @@ def main():
     if args.once == "mcp-replies":
         run_mcp_replies()
         return
+    if args.once == "listicle":
+        run_listicle_outreach()
+        return
 
     # Long-lived scheduler loop
     running = True
@@ -275,31 +309,33 @@ def main():
     signal.signal(signal.SIGINT, handle_signal)
 
     logger.info("Growth Engine scheduler started")
-    logger.info("  X post times (UTC): %s", POST_HOURS_UTC)
-    logger.info("  LinkedIn post: Tue-Thu at %d:00 UTC", LINKEDIN_POST_HOUR_UTC)
+    logger.info("  X post times (PT): %s", X_POST_HOURS_PT)
+    logger.info("  LinkedIn post: Tue-Thu at %d:00 PT", LINKEDIN_POST_HOUR_PT)
     logger.info("  scan interval: every %d hours", SCAN_INTERVAL_HOURS)
     logger.info("  MCP reply scan: every %d hours (%s)", MCP_REPLY_INTERVAL_HOURS, "enabled" if MCP_REPLY_ENABLED else "disabled")
     logger.info("  LinkedIn native posting: %s", "enabled" if LINKEDIN_NATIVE_ENABLED else "disabled")
-    logger.info("  enrichment pipeline: Mon-Fri at %d:00 UTC", ENRICHMENT_HOUR_UTC)
+    logger.info("  enrichment pipeline: Mon-Fri at %d:00 ET", ENRICHMENT_HOUR_ET)
+    logger.info("  listicle/podcast outreach: Mondays at 10:00 ET (%s)", "enabled" if LISTICLE_OUTREACH_ENABLED else "disabled")
 
-    last_post_hour: int | None = None
+    last_post_slot: str | None = None
     last_scan_time: float = 0  # scan immediately on startup
     last_mcp_reply_time: float = 0  # scan immediately on startup
     last_li_date: str | None = None
     last_enrich_date: str | None = None
+    last_listicle_date: str | None = None
 
     while running:
         try:
-            if should_post_now(last_post_hour):
-                now = datetime.now(timezone.utc)
-                logger.info("X posting (hour=%d UTC)...", now.hour)
+            if should_post_now(last_post_slot):
+                now = ensure_timezone(None, PACIFIC_TZ)
+                logger.info("X posting (%s PT)...", now.strftime("%Y-%m-%d %H:%M"))
                 run_post()
-                last_post_hour = now.hour
+                last_post_slot = slot_key(now, PACIFIC_TZ)
 
             if LINKEDIN_NATIVE_ENABLED and should_linkedin_post_now(last_li_date):
                 logger.info("LinkedIn native posting...")
                 run_linkedin_post()
-                last_li_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                last_li_date = date_str(None, PACIFIC_TZ)
 
             if should_scan_now(last_scan_time):
                 logger.info("scanning for engagement...")
@@ -314,7 +350,12 @@ def main():
             if should_enrich_now(last_enrich_date):
                 logger.info("running enrichment pipeline...")
                 run_enrichment()
-                last_enrich_date = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                last_enrich_date = date_str(None, EASTERN_TZ)
+
+            if LISTICLE_OUTREACH_ENABLED and should_listicle_outreach_now(last_listicle_date):
+                logger.info("running weekly listicle/podcast outreach...")
+                run_listicle_outreach()
+                last_listicle_date = date_str(None, EASTERN_TZ)
 
         except Exception as e:
             logger.error("scheduler loop error: %s", e, exc_info=True)

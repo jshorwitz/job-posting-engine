@@ -124,5 +124,31 @@
       "image_prompt": "Dark background (#0B0E12). Abstract pyramid with 3 layers. Bottom layer has 4 competing arrows pulling in different directions in muted colors. Top layer shows a single lime green (#9CFF5A) node sitting above with a calm glow and thin connection lines to everything below. Platform agnostic orchestration concept. No text, no logos. 1200x627.",
       "has_image": true
     }
+  ],
+  "week_5": [
+    {
+      "day": "Tuesday",
+      "time": "09:00 PT",
+      "type": "thought_leadership",
+      "text": "90% of SaaS companies compete for the same paid keywords.\n\nThe other 10% get featured in the \"Best Of\" articles that already rank for those keywords.\n\nOne approach costs money every month. The other compounds forever.\n\nHere's what we learned building Synter's organic growth engine:\n\nEvery time someone googles \"best AI ad management tools,\" there are 20-30 listicle articles on page one. Each one gets thousands of monthly visits from high-intent buyers actively researching solutions.\n\nGetting featured in those articles is surprisingly straightforward:\n\n\u2192 Search 3-5 query variations for your category\n\u2192 Scrape the top 100 results per query\n\u2192 Filter by Domain Rating 45+ and 2,000+ monthly traffic\n\u2192 Find the editor or author on LinkedIn\n\u2192 Send a short, specific email asking to be included\n\u2192 Offer a free trial or demo as incentive\n\nWe secured 3 listicle placements in our first 2 weeks using this exact process.\n\nThe ROI math is brutal: one email to an editor delivers more qualified traffic than $5,000 in ad spend \u2014 and it keeps delivering for years.\n\nEvery SaaS founder should spend 2 hours finding the listicle articles in their category. Then email every author. It's the highest-ROI marketing activity nobody talks about.\n\n#SaaSMarketing #OrganicGrowth #SEO #ContentMarketing",
+      "image_prompt": "Dark background (#0B0E12). Abstract visualization of compounding growth: a small lime green (#9CFF5A) seed shape on the left growing into an exponential curve made of glowing green particles flowing to the right. Scattered cyan (#4DD6FF) dots represent individual article placements along the curve. No text, no logos. 1200x627.",
+      "has_image": true
+    },
+    {
+      "day": "Wednesday",
+      "time": "08:30 PT",
+      "type": "build_in_public",
+      "text": "We built an outreach engine to find companies hiring growth marketers and send them cold emails enriched with SpyFu competitive intelligence data.\n\nNow we're using the same infrastructure for a completely different purpose: listicle placement outreach.\n\nSame pipeline. Different use case.\n\nThe workflow:\n\n\u2192 Scrape Google for \"best AI ad tools\" articles (top 100 results)\n\u2192 Filter by Ahrefs domain metrics (DR 45+, 2K+ traffic)\n\u2192 Use PhantomBuster to find decision makers at each publication\n\u2192 Enrich with Prospeo for verified email addresses\n\u2192 Run a 3-email sequence via Instantly\n\nFirst email is simple: \"Would you be open to adding us to your list? We're the go-to AI agent platform for ad management. Happy to offer a free trial or write the excerpt myself.\"\n\nResults so far:\n\u2022 47 target articles identified in our category\n\u2022 3 placements secured in week one\n\u2022 12 conversations in progress\n\u2022 Goal: 15 placements by end of month\n\nThe best part: once you're in a listicle, you stay in it. These articles get updated, not replaced. Your placement compounds.\n\nTotal cost of the outreach stack: less than one month of Google Ads.\n\n#BuildInPublic #SaaSGrowth #LinkBuilding #OrganicMarketing",
+      "image_prompt": "Dark background (#0B0E12). Abstract pipeline visualization: three connected stages flowing left to right. Stage 1: scattered document shapes in muted gray. Stage 2: a funnel shape with lime green (#9CFF5A) filtering effect. Stage 3: organized glowing green checkmarks arranged in a grid. Cyan (#4DD6FF) connection lines between stages. No text, no logos. 1200x627.",
+      "has_image": true
+    },
+    {
+      "day": "Thursday",
+      "time": "08:00 PT",
+      "type": "case_study",
+      "text": "Listicle placement ROI breakdown \u2014 real numbers from Synter's organic growth campaign.\n\nOne placement on a DR 60 site that ranks for \"best AI ad management tools\":\n\n\u2022 Article gets ~3,000 organic visits/month\n\u2022 Synter listing drives ~200 clicks/month to syntermedia.ai\n\u2022 Conversion rate from listicle traffic: 4.2% (higher than paid \u2014 these are actively researching buyers)\n\u2022 Cost to acquire: one email + one follow-up\n\u2022 Duration: permanent (article has been ranking for 18 months)\n\nCompare that to Google Ads for the same keyword:\n\n\u2022 \"AI ad management tools\" CPC: $12-18\n\u2022 200 clicks/month = $2,400-$3,600/month\n\u2022 Cost over 18 months: $43,200-$64,800\n\nThe listicle placement delivered the equivalent of $43K-$65K in paid traffic for the cost of writing two emails.\n\nThis is why we're systematically working through every listicle in our category. We found 47 articles ranking for variations of our target keywords. We're in 3 of them now. Goal is 15 by end of month.\n\nThe compounding effect is real: each new placement increases branded search volume, which improves domain authority, which makes the next placement easier to get.\n\nsyntermedia.ai\n\n#PerformanceMarketing #SaaSMarketing #OrganicGrowth #SEO",
+      "image_prompt": "Dark background (#0B0E12). Abstract ROI comparison: left side shows coins/currency shapes falling and disappearing (muted orange/red tones suggesting recurring cost). Right side shows a single lime green (#9CFF5A) arrow pointing up with stacking horizontal bars getting wider over time suggesting compounding returns. Cyan (#4DD6FF) accent on the growth bars. No text, no logos, no numbers. 1200x627.",
+      "has_image": true
+    }
   ]
 }

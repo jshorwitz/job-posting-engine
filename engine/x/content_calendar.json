@@ -198,5 +198,79 @@
       "type": "question",
       "text": "serious question: would you trust an AI agent to manage $10k/month in ad spend\n\nour users already do\n\nwhat's your threshold"
     }
+  ],
+  "week_5": [
+    {
+      "day": "monday",
+      "time": "10:00",
+      "type": "hot_take",
+      "text": "90% of SaaS companies spend $10k/month on ads to get traffic\n\nthe other 10% get featured in \"best of\" articles that rank for years\n\none costs money every month\n\nthe other compounds forever"
+    },
+    {
+      "day": "monday",
+      "time": "14:00",
+      "type": "breakdown",
+      "text": "how we get synter into \"best of\" listicle articles for free\n\n> google \"best AI ad tools\" + scrape 100 results\n> filter by domain rating 45+ and 2k+ monthly traffic\n> find the editor on linkedin\n> send a short email: \"would you add us\"\n> offer a free trial as incentive\n\n3 placements in 2 weeks"
+    },
+    {
+      "day": "tuesday",
+      "time": "09:30",
+      "type": "build_in_public",
+      "text": "built an outreach engine that finds companies hiring growth marketers\n\nthen enriches them with spyfu data and sends cold emails\n\nnow using the same pipeline to find listicle editors\n\nsame infra, different use case"
+    },
+    {
+      "day": "tuesday",
+      "time": "15:00",
+      "type": "hot_take",
+      "text": "your competitor is in 47 \"best of\" articles you're not in\n\neach one ranks for a buying-intent keyword\n\neach one sends traffic for years\n\nand you're paying per click instead"
+    },
+    {
+      "day": "wednesday",
+      "time": "10:00",
+      "type": "breakdown",
+      "text": "one listicle placement on a DR 60 site\n\n> ranks for \"best AI ad tools\"\n> gets 3,000 visits/month\n> sends us 200 clicks/month\n> forever\n\ncost: one email to the editor\n\nroi: infinite"
+    },
+    {
+      "day": "wednesday",
+      "time": "16:00",
+      "type": "question",
+      "text": "how many \"best ad management tools\" articles is your competitor in that you're not\n\nwe found 47 for our category\n\nworking through the list one by one"
+    },
+    {
+      "day": "thursday",
+      "time": "09:00",
+      "type": "build_in_public",
+      "text": "synter just got featured in \"best AI ad management tools for 2026\"\n\nwe didn't pay for it\n\nwe emailed the author, showed a demo, they added us at #3\n\nlisticles are underrated growth"
+    },
+    {
+      "day": "thursday",
+      "time": "14:30",
+      "type": "hot_take",
+      "text": "the best SEO strategy for a SaaS startup isn't writing blog posts\n\nit's getting listed in every \"best X\" article that already ranks\n\nsomeone else did the SEO work\n\nyou just need to be in the article"
+    },
+    {
+      "day": "friday",
+      "time": "10:00",
+      "type": "breakdown",
+      "text": "the listicle outreach stack we use at synter\n\n> instant data scraper for google results\n> ahrefs for domain rating + traffic filtering\n> phantombuster for linkedin decision makers\n> prospeo for email enrichment\n> instantly for the email sequence\n\ntotal cost: less than one month of google ads"
+    },
+    {
+      "day": "friday",
+      "time": "16:00",
+      "type": "hot_take",
+      "text": "every SaaS founder should spend 2 hours finding \"best of\" articles in their category\n\nthen email every author\n\nit's the highest ROI marketing activity nobody talks about"
+    },
+    {
+      "day": "saturday",
+      "time": "11:00",
+      "type": "casual",
+      "text": "saturday morning research: finding every article that ranks for \"best ad management tools\"\n\n23 articles so far\n\nsynter is in 3 of them\n\nby end of month we'll be in 15"
+    },
+    {
+      "day": "sunday",
+      "time": "12:00",
+      "type": "question",
+      "text": "what's the best growth channel you've found that isn't paid ads\n\nfor us it's listicle placements\n\none email to an editor > $5k in ad spend"
+    }
   ]
 }
