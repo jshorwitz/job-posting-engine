@@ -1295,6 +1295,10 @@ def main() -> None:
         "--podcast-list", action="store_true",
         help="List all podcast targets",
     )
+    parser.add_argument(
+        "--listicle-followups", action="store_true",
+        help="Send follow-up emails to targets that haven't responded (3-day cadence)",
+    )
 
     args = parser.parse_args()
 
@@ -1595,6 +1599,21 @@ def main() -> None:
             status_icon = "✅" if t["status"] == "listed" else "📧" if "outreach" in t["status"] else "👤" if t["status"] == "contact_found" else "⬜"
             print(f"  {status_icon} [{t['id']:3d}] 🎙️ {t['domain']:>30} | {t['status']:>15} | {t['title']}")
         print(f"\nTotal: {len(targets)}")
+        lsession.close()
+        return
+
+    if args.listicle_followups:
+        from engine.listicle.outreach import send_followups
+        import json as _json
+
+        if not settings.resend_api_key:
+            print(_json.dumps({"success": False, "error": "RESEND_API_KEY not set"}))
+            return
+
+        SessionFactory = init_db(settings.database_path)
+        lsession = SessionFactory()
+        stats = send_followups(lsession, settings, dry_run=settings.dry_run, limit=args.limit or 30)
+        print(_json.dumps({"success": True, "dry_run": settings.dry_run, **stats}, indent=2))
         lsession.close()
         return
 
