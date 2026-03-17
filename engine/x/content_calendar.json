@@ -198,5 +198,19 @@
       "type": "question",
       "text": "serious question: would you trust an AI agent to manage $10k/month in ad spend\n\nour users already do\n\nwhat's your threshold"
     }
+  ],
+  "week_5": [
+    {
+      "day": "tuesday",
+      "time": "09:30",
+      "type": "build_in_public",
+      "text": "just shipped similarweb into synter\n\nyour AI agent now pulls competitor traffic, compares domains, and mines keywords\n\nthen builds campaigns from what it finds\n\nsame chat, 90 seconds\n\nsyntermedia.ai"
+    },
+    {
+      "day": "tuesday",
+      "time": "14:00",
+      "type": "hot_take",
+      "text": "most competitive intel tools give you a report\n\nsynter gives you a report and then launches a campaign targeting the gaps it found\n\nsame chat, same session, 90 seconds"
+    }
   ]
 }

@@ -124,5 +124,15 @@
       "image_prompt": "Dark background (#0B0E12). Abstract pyramid with 3 layers. Bottom layer has 4 competing arrows pulling in different directions in muted colors. Top layer shows a single lime green (#9CFF5A) node sitting above with a calm glow and thin connection lines to everything below. Platform agnostic orchestration concept. No text, no logos. 1200x627.",
       "has_image": true
     }
+  ],
+  "week_5": [
+    {
+      "day": "Tuesday",
+      "time": "08:30 PT",
+      "type": "product_launch",
+      "text": "Synter now has SimilarWeb built in.\n\nYour AI agent can pull competitor traffic data, compare domains, and mine keyword intelligence \u2014 then immediately act on what it finds.\n\nThree new tools, zero SimilarWeb subscription required:\n\n\u2192 Domain Analysis \u2014 traffic volume, source breakdown, top pages, geo distribution, engagement metrics, similar sites\n\u2192 Competitive Comparison \u2014 side-by-side traffic comparison of 2-3 competitors with channel mix differences and growth trends\n\u2192 Keyword Intelligence \u2014 organic and paid keywords driving traffic to any domain, plus volume, CPC, difficulty, and trends for any keyword list\n\nHere's what makes this different from using SimilarWeb alone:\n\nSynter closes the loop from insight to execution.\n\nTell the agent \"analyze my competitor's traffic and build a campaign targeting their top keywords\" \u2014 and it pulls the SimilarWeb data, identifies gaps in their paid strategy, generates ad creatives, and launches the campaign. Same chat. Same session.\n\nNo dashboard. No spreadsheet. No copy-pasting keywords between tabs.\n\nThe competitive intelligence that used to take a strategist half a day now takes 90 seconds \u2014 and ends with a live campaign, not a slide deck.\n\n30-60 credits per analysis. Free tier includes 1,000 credits.\n\nRead the full breakdown \u2192 syntermedia.ai/blog/similarweb-traffic-intelligence\n\nWe're also live on Product Hunt \u2192 producthunt.com/posts/synter-media-ai\n\n#AIAgents #AdTech #CompetitiveIntelligence #PerformanceMarketing",
+      "image_prompt": "Dark background (#0B0E12). Abstract competitive intelligence visualization: a central lime green (#9CFF5A) magnifying glass shape with three orbiting data streams in cyan (#4DD6FF) representing traffic, keywords, and domain comparison. Flowing green gradient lines connect to a campaign launch node at the bottom. No text, no logos. Clean, minimal, high contrast. 1200x627.",
+      "has_image": true
+    }
   ]
 }
