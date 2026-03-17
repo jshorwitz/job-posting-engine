@@ -35,7 +35,7 @@ from pathlib import Path
 
 
 TARGETS_PATH = Path(__file__).parent / ".x_quote_targets.json"
-BEARER_TOKEN_KEY = "X_API_BEARER_TOKEN"
+BEARER_TOKEN_KEY = "X_BEARER_TOKEN"
 
 # Searches that surface Synter-relevant content
 DEFAULT_SEARCHES = [
@@ -49,7 +49,7 @@ DEFAULT_SEARCHES = [
 
 
 def get_bearer_token() -> str:
-    token = os.environ.get(BEARER_TOKEN_KEY) or os.environ.get("JOEL_X_BEARER_TOKEN")
+    token = os.environ.get(BEARER_TOKEN_KEY) or os.environ.get("X_API_BEARER_TOKEN") or os.environ.get("JOEL_X_BEARER_TOKEN")
     if not token:
         print(json.dumps({"success": False, "error": f"{BEARER_TOKEN_KEY} not set"}))
         sys.exit(1)

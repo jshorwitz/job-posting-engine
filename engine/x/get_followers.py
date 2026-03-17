@@ -25,9 +25,9 @@ import sys
 
 
 def get_bearer_token() -> str:
-    token = os.environ.get("X_API_BEARER_TOKEN")
+    token = os.environ.get("X_BEARER_TOKEN") or os.environ.get("X_API_BEARER_TOKEN")
     if not token:
-        print(json.dumps({"success": False, "error": "X_API_BEARER_TOKEN not set"}))
+        print(json.dumps({"success": False, "error": "X_BEARER_TOKEN not set"}))
         sys.exit(1)
     return token
 

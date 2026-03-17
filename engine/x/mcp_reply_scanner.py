@@ -125,7 +125,7 @@ SKIP_USERNAMES = {"jshorwitz", "synterai", "syntermedia"}
 
 
 def get_bearer_token() -> str | None:
-    token = os.environ.get("X_API_BEARER_TOKEN") or os.environ.get("JOEL_X_BEARER_TOKEN")
+    token = os.environ.get("X_BEARER_TOKEN") or os.environ.get("X_API_BEARER_TOKEN") or os.environ.get("JOEL_X_BEARER_TOKEN")
     return token
 
 
