@@ -73,20 +73,40 @@ COMMENT_TEMPLATES = [
 ]
 
 
-def get_bearer_token() -> str:
+def get_bearer_token() -> str | None:
     token = os.environ.get("X_API_BEARER_TOKEN") or os.environ.get("JOEL_X_BEARER_TOKEN")
-    if not token:
-        print(json.dumps({"success": False, "error": "X_API_BEARER_TOKEN not set"}))
-        sys.exit(1)
     return token
 
 
-def search_tweets(bearer_token: str, query: str, limit: int, min_likes: int, min_followers: int) -> list:
-    """Search recent tweets matching query with engagement filters."""
+def get_oauth1_session():
+    """Get OAuth 1.0a session for user-context search (Pro tier)."""
+    try:
+        from requests_oauthlib import OAuth1Session
+    except ImportError:
+        return None
+
+    consumer_key = os.environ.get("X_ADS_CONSUMER_KEY") or os.environ.get("JOEL_X_CONSUMER_KEY")
+    consumer_secret = os.environ.get("X_ADS_CONSUMER_SECRET") or os.environ.get("JOEL_X_CONSUMER_SECRET")
+    access_token = os.environ.get("X_ADS_ACCESS_TOKEN") or os.environ.get("JOEL_X_ACCESS_TOKEN")
+    access_secret = os.environ.get("X_ADS_ACCESS_TOKEN_SECRET") or os.environ.get("JOEL_X_ACCESS_TOKEN_SECRET")
+
+    if not all([consumer_key, consumer_secret, access_token, access_secret]):
+        return None
+
+    return OAuth1Session(
+        consumer_key,
+        client_secret=consumer_secret,
+        resource_owner_key=access_token,
+        resource_owner_secret=access_secret,
+    )
+
+
+def search_tweets(bearer_token: str | None, query: str, limit: int, min_likes: int, min_followers: int) -> list:
+    """Search recent tweets matching query with engagement filters.
+    Tries bearer token first, falls back to OAuth 1.0a on 403."""
     import httpx
 
     url = "https://api.x.com/2/tweets/search/recent"
-    headers = {"Authorization": f"Bearer {bearer_token}"}
     params = {
         "query": f"{query} -is:retweet -is:reply lang:en",
         "max_results": min(limit, 100),
@@ -95,10 +115,28 @@ def search_tweets(bearer_token: str, query: str, limit: int, min_likes: int, min
         "user.fields": "username,name,public_metrics,verified,description",
     }
 
-    with httpx.Client(timeout=30.0) as client:
-        response = client.get(url, headers=headers, params=params)
+    data = None
+
+    # Try bearer token first
+    if bearer_token:
+        headers = {"Authorization": f"Bearer {bearer_token}"}
+        with httpx.Client(timeout=30.0) as client:
+            response = client.get(url, headers=headers, params=params)
+            if response.status_code == 429:
+                return []
+            if response.status_code != 403:
+                response.raise_for_status()
+                data = response.json()
+
+    # Fall back to OAuth 1.0a if bearer failed or returned 403
+    if data is None:
+        oauth = get_oauth1_session()
+        if not oauth:
+            print(json.dumps({"success": False, "error": "No valid X API credentials for search"}), file=sys.stderr)
+            return []
+        response = oauth.get(url, params=params)
         if response.status_code == 429:
-            return []  # silently skip on rate limit during scan
+            return []
         response.raise_for_status()
         data = response.json()
 
