@@ -11,6 +11,8 @@ LINKEDIN_POST_HOUR_PT = 9
 LINKEDIN_POST_DAYS = {1, 2, 3}  # Tue, Wed, Thu
 ENRICHMENT_HOUR_ET = 9
 ENRICHMENT_DAYS = {0, 1, 2, 3, 4}  # Mon-Fri
+JOB_DISCOVERY_HOUR_ET = 8
+JOB_DISCOVERY_DAYS = {0, 1, 2, 3, 4}  # Mon-Fri
 LISTICLE_OUTREACH_HOUR_ET = 10
 LISTICLE_OUTREACH_DAY = 1  # Tuesday
 FOLLOWUP_HOUR_ET = 11
@@ -57,6 +59,16 @@ def should_enrich_now(last_enrich_date: str | None, now: datetime | None = None)
         current.hour == ENRICHMENT_HOUR_ET
         and current.weekday() in ENRICHMENT_DAYS
         and date_str(current, EASTERN_TZ) != last_enrich_date
+    )
+
+
+def should_job_discovery_now(last_job_date: str | None, now: datetime | None = None) -> bool:
+    """Daily job discovery — Mon-Fri at 8am ET."""
+    current = ensure_timezone(now, EASTERN_TZ)
+    return (
+        current.hour == JOB_DISCOVERY_HOUR_ET
+        and current.weekday() in JOB_DISCOVERY_DAYS
+        and date_str(current, EASTERN_TZ) != last_job_date
     )
 
 

@@ -31,12 +31,14 @@ logger = logging.getLogger("x_scheduler")
 from engine.x.time_utils import (
     EASTERN_TZ,
     ENRICHMENT_HOUR_ET,
+    JOB_DISCOVERY_HOUR_ET,
     LINKEDIN_POST_HOUR_PT,
     PACIFIC_TZ,
     X_POST_HOURS_PT,
     date_str,
     ensure_timezone,
     should_enrich_now,
+    should_job_discovery_now,
     should_linkedin_post_now,
     should_followup_now,
     should_listicle_outreach_now,
@@ -226,8 +228,25 @@ def run_scan():
         logger.error("scan failed: %s", e, exc_info=True)
 
 
+JOB_DISCOVERY_ENABLED = os.environ.get("JOB_DISCOVERY_ENABLED", "true").lower() != "false"
+JOB_DISCOVERY_LIMIT = int(os.environ.get("JOB_DISCOVERY_LIMIT", "30"))
 LISTICLE_OUTREACH_ENABLED = os.environ.get("LISTICLE_OUTREACH_ENABLED", "true").lower() != "false"
 FOLLOWUP_ENABLED = os.environ.get("LISTICLE_FOLLOWUP_ENABLED", "true").lower() != "false"
+
+
+def run_job_discovery():
+    """Daily Sumble job discovery → contact enrichment → email outreach."""
+    try:
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, "-m", "engine.pipeline", "--channel", "email", "--limit", str(JOB_DISCOVERY_LIMIT)],
+            capture_output=True, text=True, timeout=300,
+        )
+        logger.info("job discovery stdout: %s", result.stdout[-500:] if result.stdout else "(empty)")
+        if result.returncode != 0:
+            logger.error("job discovery stderr: %s", result.stderr[-500:] if result.stderr else "(empty)")
+    except Exception as e:
+        logger.error("job discovery failed: %s", e, exc_info=True)
 
 
 def run_listicle_outreach():
@@ -305,7 +324,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="X Growth Engine Scheduler")
-    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "listicle", "followups"], help="Run once and exit")
+    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "listicle", "followups", "job-discovery"], help="Run once and exit")
     args = parser.parse_args()
 
     if args.once == "post":
@@ -326,6 +345,9 @@ def main():
     if args.once == "followups":
         run_listicle_followups()
         return
+    if args.once == "job-discovery":
+        run_job_discovery()
+        return
 
     # Long-lived scheduler loop
     running = True
@@ -345,7 +367,8 @@ def main():
     logger.info("  MCP reply scan: every %d hours (%s)", MCP_REPLY_INTERVAL_HOURS, "enabled" if MCP_REPLY_ENABLED else "disabled")
     logger.info("  LinkedIn native posting: %s", "enabled" if LINKEDIN_NATIVE_ENABLED else "disabled")
     logger.info("  enrichment pipeline: Mon-Fri at %d:00 ET", ENRICHMENT_HOUR_ET)
-    logger.info("  listicle/podcast outreach: Mondays at 10:00 ET (%s)", "enabled" if LISTICLE_OUTREACH_ENABLED else "disabled")
+    logger.info("  job discovery: Mon-Fri at %d:00 ET (%s)", JOB_DISCOVERY_HOUR_ET, "enabled" if JOB_DISCOVERY_ENABLED else "disabled")
+    logger.info("  listicle/podcast outreach: Tuesdays at 10:00 ET (%s)", "enabled" if LISTICLE_OUTREACH_ENABLED else "disabled")
     logger.info("  follow-up emails: Mon-Fri at 11:00 ET (%s)", "enabled" if FOLLOWUP_ENABLED else "disabled")
 
     last_post_slot: str | None = None
@@ -353,6 +376,7 @@ def main():
     last_mcp_reply_time: float = 0  # scan immediately on startup
     last_li_date: str | None = None
     last_enrich_date: str | None = None
+    last_job_date: str | None = None
     last_listicle_date: str | None = None
     last_followup_date: str | None = None
 
@@ -383,6 +407,11 @@ def main():
                 logger.info("running enrichment pipeline...")
                 run_enrichment()
                 last_enrich_date = date_str(None, EASTERN_TZ)
+
+            if JOB_DISCOVERY_ENABLED and should_job_discovery_now(last_job_date):
+                logger.info("running job discovery pipeline (limit=%d)...", JOB_DISCOVERY_LIMIT)
+                run_job_discovery()
+                last_job_date = date_str(None, EASTERN_TZ)
 
             if LISTICLE_OUTREACH_ENABLED and should_listicle_outreach_now(last_listicle_date):
                 logger.info("running weekly listicle/podcast outreach...")
