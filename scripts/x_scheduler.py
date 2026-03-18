@@ -38,6 +38,7 @@ from engine.x.time_utils import (
     ensure_timezone,
     should_enrich_now,
     should_linkedin_post_now,
+    should_listicle_outreach_now,
     should_post_now,
     slot_key,
 )
@@ -224,11 +225,60 @@ def run_scan():
         logger.error("scan failed: %s", e, exc_info=True)
 
 
+LISTICLE_OUTREACH_ENABLED = os.environ.get("LISTICLE_OUTREACH_ENABLED", "true").lower() != "false"
+
+
+def run_listicle_outreach():
+    """Weekly listicle + podcast discovery → enrichment → outreach pipeline."""
+    try:
+        from engine.config import Settings
+        from engine.clients.hunter import HunterClient
+        from engine.db.database import init_db
+        from engine.listicle.scraper import discover_via_serper, store_targets
+        from engine.listicle.enricher import enrich_targets
+        from engine.listicle.outreach import send_outreach
+
+        settings = Settings()
+        SessionFactory = init_db(settings.database_path)
+        session = SessionFactory()
+
+        serper_key = getattr(settings, "serper_api_key", "")
+        if not serper_key:
+            logger.warning("listicle outreach skipped: SERPER_API_KEY not set")
+            return
+
+        # Step 1: Discover new targets (listicles + podcasts)
+        for target_type in ("listicle", "podcast"):
+            targets = discover_via_serper(serper_key, target_type=target_type)
+            stats = store_targets(session, targets)
+            logger.info("discovery [%s]: %d new, %d existing", target_type, stats["new"], stats["existing"])
+
+        # Step 2: Enrich with editor/host contacts
+        if settings.hunter_api_key:
+            hunter = HunterClient(settings)
+            for target_type in ("listicle", "podcast"):
+                e_stats = enrich_targets(session, hunter, limit=30, target_type=target_type)
+                logger.info("enrichment [%s]: %d contacts found", target_type, e_stats["enriched"])
+
+        # Step 3: Send outreach via Resend
+        if settings.resend_api_key:
+            for target_type in ("listicle", "podcast"):
+                o_stats = send_outreach(session, settings, limit=20, target_type=target_type)
+                logger.info("outreach [%s]: %d sent, %d failed", target_type, o_stats["sent"], o_stats["failed"])
+        else:
+            logger.warning("listicle outreach skipped send: RESEND_API_KEY not set")
+
+        session.close()
+
+    except Exception as e:
+        logger.error("listicle outreach pipeline failed: %s", e, exc_info=True)
+
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="X Growth Engine Scheduler")
-    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies"], help="Run once and exit")
+    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "listicle"], help="Run once and exit")
     args = parser.parse_args()
 
     if args.once == "post":
@@ -242,6 +292,9 @@ def main():
         return
     if args.once == "mcp-replies":
         run_mcp_replies()
+        return
+    if args.once == "listicle":
+        run_listicle_outreach()
         return
 
     # Long-lived scheduler loop
@@ -262,12 +315,14 @@ def main():
     logger.info("  MCP reply scan: every %d hours (%s)", MCP_REPLY_INTERVAL_HOURS, "enabled" if MCP_REPLY_ENABLED else "disabled")
     logger.info("  LinkedIn native posting: %s", "enabled" if LINKEDIN_NATIVE_ENABLED else "disabled")
     logger.info("  enrichment pipeline: Mon-Fri at %d:00 ET", ENRICHMENT_HOUR_ET)
+    logger.info("  listicle/podcast outreach: Mondays at 10:00 ET (%s)", "enabled" if LISTICLE_OUTREACH_ENABLED else "disabled")
 
     last_post_slot: str | None = None
     last_scan_time: float = 0  # scan immediately on startup
     last_mcp_reply_time: float = 0  # scan immediately on startup
     last_li_date: str | None = None
     last_enrich_date: str | None = None
+    last_listicle_date: str | None = None
 
     while running:
         try:
@@ -296,6 +351,11 @@ def main():
                 logger.info("running enrichment pipeline...")
                 run_enrichment()
                 last_enrich_date = date_str(None, EASTERN_TZ)
+
+            if LISTICLE_OUTREACH_ENABLED and should_listicle_outreach_now(last_listicle_date):
+                logger.info("running weekly listicle/podcast outreach...")
+                run_listicle_outreach()
+                last_listicle_date = date_str(None, EASTERN_TZ)
 
         except Exception as e:
             logger.error("scheduler loop error: %s", e, exc_info=True)

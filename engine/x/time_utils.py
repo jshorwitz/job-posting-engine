@@ -11,6 +11,8 @@ LINKEDIN_POST_HOUR_PT = 9
 LINKEDIN_POST_DAYS = {1, 2, 3}  # Tue, Wed, Thu
 ENRICHMENT_HOUR_ET = 9
 ENRICHMENT_DAYS = {0, 1, 2, 3, 4}  # Mon-Fri
+LISTICLE_OUTREACH_HOUR_ET = 10
+LISTICLE_OUTREACH_DAY = 0  # Monday
 
 
 def ensure_timezone(now: datetime | None, tz: ZoneInfo) -> datetime:
@@ -53,4 +55,14 @@ def should_enrich_now(last_enrich_date: str | None, now: datetime | None = None)
         current.hour == ENRICHMENT_HOUR_ET
         and current.weekday() in ENRICHMENT_DAYS
         and date_str(current, EASTERN_TZ) != last_enrich_date
+    )
+
+
+def should_listicle_outreach_now(last_listicle_date: str | None, now: datetime | None = None) -> bool:
+    """Weekly listicle/podcast outreach — Mondays at 10am ET."""
+    current = ensure_timezone(now, EASTERN_TZ)
+    return (
+        current.hour == LISTICLE_OUTREACH_HOUR_ET
+        and current.weekday() == LISTICLE_OUTREACH_DAY
+        and date_str(current, EASTERN_TZ) != last_listicle_date
     )

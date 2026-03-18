@@ -109,5 +109,14 @@ class Settings(BaseSettings):
     adzuna_app_id: str = ""
     adzuna_api_key: str = ""
 
+    # --- Resend (transactional email) ---
+    resend_api_key: str = ""
+    resend_from_email: str = "joel@syntermedia.ai"
+
+    # --- Listicle Discovery ---
+    serper_api_key: str = ""
+    google_cse_api_key: str = ""
+    google_cse_id: str = ""
+
     # --- Database ---
     database_path: str = "data/outreach.db"

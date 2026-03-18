@@ -5,7 +5,7 @@ from __future__ import annotations
 import enum
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, Enum, Float, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -206,3 +206,65 @@ class DripState(Base):
     enrolled_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     last_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class PlatformScan(Base):
+    """Tracks ad platform pixel detection per domain from BuiltWith scans.
+
+    One row per (domain, platform) pair. Use to aggregate which platforms
+    leads are running and which are missing — helps prioritize platform
+    build-out.
+    """
+
+    __tablename__ = "platform_scans"
+    __table_args__ = (UniqueConstraint("company_domain", "platform", name="uq_domain_platform"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    company_domain: Mapped[str] = mapped_column(String(255), index=True)
+    platform: Mapped[str] = mapped_column(String(50), index=True)
+    detected: Mapped[bool] = mapped_column(Boolean, default=False)
+    scanned_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class ListicleStatus(str, enum.Enum):
+    DISCOVERED = "discovered"
+    CONTACT_FOUND = "contact_found"
+    OUTREACH_SENT = "outreach_sent"
+    FOLLOW_UP_1 = "follow_up_1"
+    FOLLOW_UP_2 = "follow_up_2"
+    LISTED = "listed"
+    REJECTED = "rejected"
+    NO_RESPONSE = "no_response"
+
+
+class ListicleTarget(Base):
+    """A listicle article to target for Synter placement."""
+
+    __tablename__ = "listicle_targets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    url: Mapped[str] = mapped_column(String(1000), unique=True, index=True)
+    title: Mapped[str] = mapped_column(String(500))
+    domain: Mapped[str] = mapped_column(String(255), index=True)
+    search_query: Mapped[str] = mapped_column(String(255))
+    target_type: Mapped[str] = mapped_column(String(20), default="listicle", index=True)  # "listicle" or "podcast"
+
+    # Metrics (from Ahrefs or similar)
+    domain_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    domain_traffic: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    article_traffic: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Editor/author contact
+    editor_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    editor_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    editor_linkedin: Mapped[str | None] = mapped_column(String(500), nullable=True)
+
+    # Outreach tracking
+    status: Mapped[ListicleStatus] = mapped_column(
+        Enum(ListicleStatus), default=ListicleStatus.DISCOVERED
+    )
+    synter_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    outreach_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    listed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    discovered_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

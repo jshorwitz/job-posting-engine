@@ -1239,6 +1239,45 @@ def main() -> None:
         "--li-crosspost-all", action="store_true",
         help="Cross-post all pending X posts to LinkedIn",
     )
+    # Listicle placement commands
+    parser.add_argument(
+        "--listicle-discover", action="store_true",
+        help="Discover listicle articles for Synter placement",
+    )
+    parser.add_argument(
+        "--listicle-enrich", action="store_true",
+        help="Find editor contacts for discovered listicle targets",
+    )
+    parser.add_argument(
+        "--listicle-outreach", action="store_true",
+        help="Send outreach emails to listicle editors",
+    )
+    parser.add_argument(
+        "--listicle-status", action="store_true",
+        help="Show listicle outreach pipeline status",
+    )
+    parser.add_argument(
+        "--listicle-list", action="store_true",
+        help="List all listicle targets",
+    )
+    # Podcast placement commands
+    parser.add_argument(
+        "--podcast-discover", action="store_true",
+        help="Discover podcasts for guest appearance outreach",
+    )
+    parser.add_argument(
+        "--podcast-enrich", action="store_true",
+        help="Find host contacts for discovered podcasts",
+    )
+    parser.add_argument(
+        "--podcast-outreach", action="store_true",
+        help="Send guest pitch emails to podcast hosts",
+    )
+    parser.add_argument(
+        "--podcast-list", action="store_true",
+        help="List all podcast targets",
+    )
+
     args = parser.parse_args()
 
     settings = Settings()
@@ -1388,6 +1427,157 @@ def main() -> None:
                 results.append({"post_id": post_id, "status": "failed", "error": str(e)})
 
         print(_json.dumps({"success": True, "results": results}, indent=2))
+        return
+
+    # --- Listicle Placement commands ---
+    if args.listicle_discover:
+        from engine.listicle.scraper import discover_via_serper, discover_via_google_cse, store_targets, SEARCH_QUERIES
+        import json as _json
+
+        SessionFactory = init_db(settings.database_path)
+        lsession = SessionFactory()
+
+        serper_key = getattr(settings, "serper_api_key", "")
+        google_key = getattr(settings, "google_cse_api_key", "")
+        google_cse_id = getattr(settings, "google_cse_id", "")
+
+        targets = []
+        if serper_key:
+            targets = discover_via_serper(serper_key)
+        elif google_key and google_cse_id:
+            targets = discover_via_google_cse(google_key, google_cse_id)
+        else:
+            print(_json.dumps({"success": False, "error": "Set SERPER_API_KEY or GOOGLE_CSE_API_KEY+GOOGLE_CSE_ID"}))
+            return
+
+        if settings.dry_run:
+            print(_json.dumps({"success": True, "dry_run": True, "count": len(targets), "targets": targets[:10]}, indent=2))
+        else:
+            stats = store_targets(lsession, targets)
+            print(_json.dumps({"success": True, **stats}, indent=2))
+        lsession.close()
+        return
+
+    if args.listicle_enrich:
+        from engine.listicle.enricher import enrich_targets
+        import json as _json
+
+        if not settings.hunter_api_key:
+            print(_json.dumps({"success": False, "error": "HUNTER_API_KEY not set"}))
+            return
+
+        SessionFactory = init_db(settings.database_path)
+        lsession = SessionFactory()
+        hunter_client = HunterClient(settings)
+        stats = enrich_targets(lsession, hunter_client, dry_run=settings.dry_run, limit=args.limit or 20)
+        print(_json.dumps({"success": True, "dry_run": settings.dry_run, **stats}, indent=2))
+        lsession.close()
+        return
+
+    if args.listicle_outreach:
+        from engine.listicle.outreach import send_outreach
+        import json as _json
+
+        if not settings.resend_api_key:
+            print(_json.dumps({"success": False, "error": "RESEND_API_KEY not set"}))
+            return
+
+        SessionFactory = init_db(settings.database_path)
+        lsession = SessionFactory()
+        stats = send_outreach(lsession, settings, dry_run=settings.dry_run, limit=args.limit or 10)
+        print(_json.dumps({"success": True, "dry_run": settings.dry_run, **stats}, indent=2))
+        lsession.close()
+        return
+
+    if args.listicle_status:
+        from engine.listicle.outreach import show_status
+
+        SessionFactory = init_db(settings.database_path)
+        lsession = SessionFactory()
+        show_status(lsession)
+        lsession.close()
+        return
+
+    if args.listicle_list:
+        from engine.listicle.scraper import list_targets
+        import json as _json
+
+        SessionFactory = init_db(settings.database_path)
+        lsession = SessionFactory()
+        targets = list_targets(lsession)
+        for t in targets:
+            status_icon = "✅" if t["status"] == "listed" else "📧" if "outreach" in t["status"] else "👤" if t["status"] == "contact_found" else "⬜"
+            print(f"  {status_icon} [{t['id']:3d}] DR:{t['domain_rating'] or '?':>3} | {t['domain']:>30} | {t['status']:>15} | {t['title']}")
+        print(f"\nTotal: {len(targets)}")
+        lsession.close()
+        return
+
+    # --- Podcast Placement commands ---
+    if args.podcast_discover:
+        from engine.listicle.scraper import discover_via_serper, store_targets
+        import json as _json
+
+        SessionFactory = init_db(settings.database_path)
+        lsession = SessionFactory()
+
+        serper_key = getattr(settings, "serper_api_key", "")
+        if not serper_key:
+            print(_json.dumps({"success": False, "error": "Set SERPER_API_KEY for discovery"}))
+            return
+
+        targets = discover_via_serper(serper_key, target_type="podcast")
+
+        if settings.dry_run:
+            print(_json.dumps({"success": True, "dry_run": True, "count": len(targets), "targets": targets[:10]}, indent=2))
+        else:
+            stats = store_targets(lsession, targets)
+            print(_json.dumps({"success": True, **stats}, indent=2))
+        lsession.close()
+        return
+
+    if args.podcast_enrich:
+        from engine.listicle.enricher import enrich_targets
+        import json as _json
+
+        if not settings.hunter_api_key:
+            print(_json.dumps({"success": False, "error": "HUNTER_API_KEY not set"}))
+            return
+
+        SessionFactory = init_db(settings.database_path)
+        lsession = SessionFactory()
+        hunter_client = HunterClient(settings)
+        stats = enrich_targets(lsession, hunter_client, dry_run=settings.dry_run, limit=args.limit or 20, target_type="podcast")
+        print(_json.dumps({"success": True, "dry_run": settings.dry_run, **stats}, indent=2))
+        lsession.close()
+        return
+
+    if args.podcast_outreach:
+        from engine.listicle.outreach import send_outreach
+        import json as _json
+
+        if not settings.resend_api_key:
+            print(_json.dumps({"success": False, "error": "RESEND_API_KEY not set"}))
+            return
+
+        SessionFactory = init_db(settings.database_path)
+        lsession = SessionFactory()
+        stats = send_outreach(lsession, settings, dry_run=settings.dry_run, limit=args.limit or 10, target_type="podcast")
+        print(_json.dumps({"success": True, "dry_run": settings.dry_run, **stats}, indent=2))
+        lsession.close()
+        return
+
+    if args.podcast_list:
+        from engine.listicle.scraper import list_targets
+        import json as _json
+
+        SessionFactory = init_db(settings.database_path)
+        lsession = SessionFactory()
+        targets = list_targets(lsession, target_type="podcast")
+        for t in targets:
+            status_icon = "✅" if t["status"] == "listed" else "📧" if "outreach" in t["status"] else "👤" if t["status"] == "contact_found" else "⬜"
+            print(f"  {status_icon} [{t['id']:3d}] 🎙️ {t['domain']:>30} | {t['status']:>15} | {t['title']}")
+        print(f"\nTotal: {len(targets)}")
+        lsession.close()
         return
 
     if args.drip:
