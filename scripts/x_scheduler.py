@@ -34,6 +34,7 @@ from engine.x.time_utils import (
     JOB_DISCOVERY_HOUR_ET,
     LINKEDIN_POST_HOUR_PT,
     PACIFIC_TZ,
+    SYNTER_CAMPAIGN_HOUR_PT,
     X_POST_HOURS_PT,
     date_str,
     ensure_timezone,
@@ -43,6 +44,7 @@ from engine.x.time_utils import (
     should_followup_now,
     should_listicle_outreach_now,
     should_post_now,
+    should_synter_campaign_now,
     slot_key,
 )
 
@@ -139,9 +141,39 @@ def _crosspost_to_linkedin(post_id: str, post: dict):
         logger.error("LinkedIn cross-post error for %s: %s", post_id, e)
 
 
+SYNTER_CAMPAIGN_ENABLED = os.environ.get("SYNTER_CAMPAIGN_ENABLED", "true").lower() != "false"
 LINKEDIN_NATIVE_ENABLED = os.environ.get("LINKEDIN_NATIVE_POSTING_ENABLED", "true").lower() != "false"
 MCP_REPLY_ENABLED = os.environ.get("X_MCP_REPLY_SCANNER_ENABLED", "true").lower() != "false"
 MCP_REPLY_MAX = int(os.environ.get("X_MCP_REPLY_MAX_PER_RUN", "5"))
+
+
+def run_synter_campaign():
+    """Post next Synter campaign item to LinkedIn (org) + X (@synterai) with ad images."""
+    try:
+        from engine.x.synter_campaign_post import load_calendar, load_posted, get_next_post, post_campaign
+
+        calendar = load_calendar()
+        posted = load_posted()
+        post = get_next_post(calendar, posted)
+
+        if not post:
+            logger.info("Synter campaign calendar exhausted, all posts sent")
+            return
+
+        result = post_campaign(post)
+        li = result.get("linkedin", {})
+        x = result.get("x", {})
+        logger.info(
+            "Synter campaign %s: LinkedIn=%s (%s) | X=%s (%s)",
+            result.get("post_id"),
+            "✅" if li.get("success") else "❌",
+            li.get("post_urn") or li.get("error", ""),
+            "✅" if x.get("success") else "❌",
+            x.get("url") or x.get("error", ""),
+        )
+
+    except Exception as e:
+        logger.error("Synter campaign post failed: %s", e, exc_info=True)
 
 
 def run_linkedin_post():
@@ -324,7 +356,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="X Growth Engine Scheduler")
-    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "listicle", "followups", "job-discovery"], help="Run once and exit")
+    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "listicle", "followups", "job-discovery", "synter-campaign"], help="Run once and exit")
     args = parser.parse_args()
 
     if args.once == "post":
@@ -348,6 +380,9 @@ def main():
     if args.once == "job-discovery":
         run_job_discovery()
         return
+    if args.once == "synter-campaign":
+        run_synter_campaign()
+        return
 
     # Long-lived scheduler loop
     running = True
@@ -366,6 +401,7 @@ def main():
     logger.info("  scan interval: every %d hours", SCAN_INTERVAL_HOURS)
     logger.info("  MCP reply scan: every %d hours (%s)", MCP_REPLY_INTERVAL_HOURS, "enabled" if MCP_REPLY_ENABLED else "disabled")
     logger.info("  LinkedIn native posting: %s", "enabled" if LINKEDIN_NATIVE_ENABLED else "disabled")
+    logger.info("  Synter campaign (LI+X): Tuesdays at %d:00 PT (%s)", SYNTER_CAMPAIGN_HOUR_PT, "enabled" if SYNTER_CAMPAIGN_ENABLED else "disabled")
     logger.info("  enrichment pipeline: Mon-Fri at %d:00 ET", ENRICHMENT_HOUR_ET)
     logger.info("  job discovery: Mon-Fri at %d:00 ET (%s)", JOB_DISCOVERY_HOUR_ET, "enabled" if JOB_DISCOVERY_ENABLED else "disabled")
     logger.info("  listicle/podcast outreach: Tuesdays at 10:00 ET (%s)", "enabled" if LISTICLE_OUTREACH_ENABLED else "disabled")
@@ -379,6 +415,7 @@ def main():
     last_job_date: str | None = None
     last_listicle_date: str | None = None
     last_followup_date: str | None = None
+    last_campaign_date: str | None = None
 
     while running:
         try:
@@ -387,6 +424,11 @@ def main():
                 logger.info("X posting (%s PT)...", now.strftime("%Y-%m-%d %H:%M"))
                 run_post()
                 last_post_slot = slot_key(now, PACIFIC_TZ)
+
+            if SYNTER_CAMPAIGN_ENABLED and should_synter_campaign_now(last_campaign_date):
+                logger.info("Synter campaign posting (LinkedIn + X @synterai)...")
+                run_synter_campaign()
+                last_campaign_date = date_str(None, PACIFIC_TZ)
 
             if LINKEDIN_NATIVE_ENABLED and should_linkedin_post_now(last_li_date):
                 logger.info("LinkedIn native posting...")

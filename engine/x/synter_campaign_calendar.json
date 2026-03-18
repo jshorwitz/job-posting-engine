@@ -1,0 +1,69 @@
+{
+  "account": "SynterMedia.AI",
+  "platforms": ["linkedin", "x"],
+  "linkedin_org_urn": "urn:li:organization:4803356",
+  "x_handle": "synterai",
+  "schedule": "Every Tuesday at 9:00 AM PT",
+  "posts": [
+    {
+      "id": "campaign_w1",
+      "date": "2026-03-24",
+      "day": "tuesday",
+      "time": "09:00 PT",
+      "pattern": "Aspirational brand statement",
+      "image": "01_aspirational_brand.png",
+      "linkedin_text": "Most ad platforms give you dashboards. Synter gives you an AI Agent that actually runs your campaigns.\nIt researches your ICP.\nIt writes the creative.\nIt launches across Google, Meta, LinkedIn, and Reddit.\nIt watches performance. Adjusts spend. Reports back.\n\nNot a copilot. Not a suggestion engine.\n\nAn AI Agent that does the work \u2014 so your marketing team can focus on strategy, not execution.\n\nSee how it works \u2192 syntermedia.ai/demo\n\n#AIAgents #AdTech #ProgrammaticAdvertising #MediaBuying",
+      "x_text": "most ad platforms give you dashboards\n\nsynter gives you an AI Agent that actually runs your campaigns\n\nresearches your ICP \u2192 writes creative \u2192 launches across google, meta, linkedin, reddit \u2192 optimizes spend\n\nnot a copilot. an agent that does the work \u2192 syntermedia.ai/demo"
+    },
+    {
+      "id": "campaign_w2",
+      "date": "2026-03-31",
+      "day": "tuesday",
+      "time": "09:00 PT",
+      "pattern": "Contrarian founder take",
+      "image": "02_contrarian_founder.png",
+      "linkedin_text": "Growth teams don\u2019t have a strategy problem. They have an execution bandwidth problem.\nThe strategy is usually right.\nThe audience research is decent.\nThe creative brief exists.\n\nBut between brief and live campaign there are 40 manual steps, 3 approval loops, and 2 weeks of lag.\n\nBy the time the campaign launches, the moment has passed.\n\nThat\u2019s what Synter solves.\n\nNot \u2018better AI suggestions.\u2019 Actual execution \u2014 from brief to live in hours, not weeks.\n\nWe built Synter\u2019s AI Agent Media Buyers specifically for this: the gap between knowing what to do and actually doing it at scale.\n\nGet started free \u2192 syntermedia.ai/get-started\n\n#AIAgents #PerformanceMarketing #GrowthMarketing #MediaBuying",
+      "x_text": "growth teams don't have a strategy problem. they have an execution bandwidth problem\n\nbetween brief and live campaign: 40 manual steps, 3 approval loops, 2 weeks of lag\n\nsynter closes that gap. brief to live in hours, not weeks \u2192 syntermedia.ai/get-started"
+    },
+    {
+      "id": "campaign_w3",
+      "date": "2026-04-07",
+      "day": "tuesday",
+      "time": "09:00 PT",
+      "pattern": "Problem-first insight hook",
+      "image": "03_problem_insight.png",
+      "linkedin_text": "Most marketing teams outgrow their ad workflow before they outgrow their budget.\nThey\u2019re running 6 channels.\nManaging 4 agencies.\nReviewing 12 dashboards.\n\nBut the actual decision \u2014 what to cut, what to scale, what to test next \u2014 still happens in a spreadsheet on Friday afternoon.\n\nSynter\u2019s AI Agents handle the full loop:\nResearch \u2192 Creative \u2192 Launch \u2192 Optimize \u2192 Report\n\nNo agency markup. No coordination overhead. No Friday spreadsheet.\n\nWe wrote about how this works in practice \u2014 link in first comment.\n\n#AIAgents #DigitalMarketing #PaidMedia #PerformanceMarketing",
+      "x_text": "most marketing teams outgrow their ad workflow before they outgrow their budget\n\n6 channels. 4 agencies. 12 dashboards\n\nsynter's AI Agents handle the full loop: research \u2192 creative \u2192 launch \u2192 optimize \u2192 report\n\nno agency markup. no friday spreadsheet \u2192 syntermedia.ai"
+    },
+    {
+      "id": "campaign_w4",
+      "date": "2026-04-14",
+      "day": "tuesday",
+      "time": "09:00 PT",
+      "pattern": "Authority / positioning",
+      "image": "04_authority_positioning.png",
+      "linkedin_text": "Synter\u2019s AI Agent Media Buyers don\u2019t suggest what to do. They do it.\nMost AI ad tools stop at recommendations:\n  \u2014 \u2018Here\u2019s a headline idea\u2019\n  \u2014 \u2018Consider testing this audience\u2019\n  \u2014 \u2018Your CPL is trending up\u2019\n\nSynter goes further.\n\nSynter researches the audience. Writes the creative. Launches across every major platform. Monitors performance. Adjusts spend. Delivers the report.\n\nOne agent. Full execution loop.\n\nBuilt for B2B marketing teams that are done coordinating and ready to scale.\n\nTalk to us \u2192 syntermedia.ai/contact\n\n#AIAgents #AdTech #B2BMarketing #PerformanceMarketing",
+      "x_text": "synter's AI Agent Media Buyers don't suggest what to do. they do it\n\nmost AI ad tools stop at recommendations\n\nsynter researches, writes creative, launches, monitors, adjusts spend, delivers reports\n\none agent. full execution loop \u2192 syntermedia.ai/contact"
+    },
+    {
+      "id": "campaign_w5",
+      "date": "2026-04-21",
+      "day": "tuesday",
+      "time": "09:00 PT",
+      "pattern": "Social proof / results",
+      "image": "05_social_proof_results.png",
+      "linkedin_text": "What does it look like when an AI Agent runs your paid media?\nHere\u2019s what Synter did for a B2B SaaS marketing team in 30 days:\n\n\u2192 Launched campaigns across Google, LinkedIn, and Meta in under 4 hours\n\u2192 Cut cost-per-lead by 34% through continuous bid optimization\n\u2192 Eliminated 3 agency relationships and the overhead that came with them\n\nThe team didn\u2019t change their strategy.\nThey changed who executes it.\n\nSynter\u2019s AI Agent Media Buyers handle execution end-to-end \u2014 so your team owns the strategy and the results.\n\nSee how it works \u2192 syntermedia.ai/demo\n\n#AIAgents #PaidMedia #PerformanceMarketing #B2BMarketing",
+      "x_text": "what does it look like when an AI Agent runs your paid media?\n\n\u2192 launched across google, linkedin, meta in under 4 hours\n\u2192 cut cost-per-lead by 34%\n\u2192 eliminated 3 agency relationships\n\nthey didn't change their strategy. they changed who executes it \u2192 syntermedia.ai/demo"
+    },
+    {
+      "id": "campaign_w6",
+      "date": "2026-04-28",
+      "day": "tuesday",
+      "time": "09:00 PT",
+      "pattern": "Category creation",
+      "image": "06_category_creation.png",
+      "linkedin_text": "There\u2019s a new category forming in B2B marketing: AI Agent Media Buyers.\nNot AI that suggests. AI that executes.\n\nIt looks like this:\n  \u2014 You define the ICP and budget\n  \u2014 The agent handles research, creative, launch, and optimization\n  \u2014 You review results and set direction\n\nThe difference from today\u2019s tools isn\u2019t intelligence \u2014 it\u2019s autonomy.\n\nMost AI ad tools are copilots. They\u2019re sitting in the passenger seat giving directions.\n\nSynter is in the driver\u2019s seat.\n\nWe think this is where the category is going. We\u2019re building it now.\n\nGet started free \u2192 syntermedia.ai/get-started\n\n#AIAgents #B2BMarketing #AdTech #CategoryCreation",
+      "x_text": "there's a new category forming in B2B marketing: AI Agent Media Buyers\n\nnot AI that suggests. AI that executes\n\nyou define ICP and budget \u2192 the agent handles research, creative, launch, optimization \u2192 you review results\n\nsynter is in the driver's seat \u2192 syntermedia.ai/get-started"
+    }
+  ]
+}

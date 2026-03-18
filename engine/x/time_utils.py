@@ -9,6 +9,8 @@ EASTERN_TZ = ZoneInfo("America/New_York")
 X_POST_HOURS_PT = (9, 12, 15, 18)
 LINKEDIN_POST_HOUR_PT = 9
 LINKEDIN_POST_DAYS = {1, 2, 3, 5}  # Tue, Wed, Thu, Sat
+SYNTER_CAMPAIGN_HOUR_PT = 9
+SYNTER_CAMPAIGN_DAY = 1  # Tuesday
 ENRICHMENT_HOUR_ET = 9
 ENRICHMENT_DAYS = {0, 1, 2, 3, 4}  # Mon-Fri
 JOB_DISCOVERY_HOUR_ET = 8
@@ -79,6 +81,16 @@ def should_listicle_outreach_now(last_listicle_date: str | None, now: datetime |
         current.hour == LISTICLE_OUTREACH_HOUR_ET
         and current.weekday() == LISTICLE_OUTREACH_DAY
         and date_str(current, EASTERN_TZ) != last_listicle_date
+    )
+
+
+def should_synter_campaign_now(last_campaign_date: str | None, now: datetime | None = None) -> bool:
+    """Synter campaign posts — Tuesdays at 9am PT (LinkedIn + X @synterai)."""
+    current = ensure_timezone(now, PACIFIC_TZ)
+    return (
+        current.hour == SYNTER_CAMPAIGN_HOUR_PT
+        and current.weekday() == SYNTER_CAMPAIGN_DAY
+        and date_str(current, PACIFIC_TZ) != last_campaign_date
     )
 
 
