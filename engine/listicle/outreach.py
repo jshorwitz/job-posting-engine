@@ -17,7 +17,7 @@ import argparse
 import json
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 
@@ -129,6 +129,21 @@ Quick context: Synter is an AI agent platform that manages ad campaigns across 7
 I think the story of building AI agents that replace $15K/month agency retainers would resonate with your audience. Happy to do a short pre-call to align on topics.
 
 Open to it?
+
+Best,
+Joel""",
+    },
+    "follow_up_2": {
+        "subject": "Re: Guest pitch — last note",
+        "body": """Hey {editor_first_name},
+
+One last follow-up on the guest pitch for your show.
+
+We just crossed 100 campaigns managed by AI agents across 7 ad platforms — the story of how we got here in 3 months is pretty wild.
+
+Happy to make it easy: I can send over a one-pager with talking points, or jump on a 5-minute pre-call.
+
+Either way, no hard feelings if the timing isn't right.
 
 Best,
 Joel""",
@@ -269,6 +284,79 @@ def send_outreach(
         else:
             stats["failed"] += 1
             logger.error(f"Outreach failed: {target.editor_email}")
+
+    return stats
+
+
+FOLLOWUP_DELAYS = {
+    ListicleStatus.OUTREACH_SENT: (ListicleStatus.FOLLOW_UP_1, 3),   # 3 days after initial
+    ListicleStatus.FOLLOW_UP_1: (ListicleStatus.FOLLOW_UP_2, 3),     # 3 days after follow-up 1
+}
+
+
+def send_followups(session, settings: Settings, dry_run: bool = False, limit: int = 20) -> dict:
+    """Send follow-up emails to targets that haven't responded after N days.
+
+    Checks outreach_sent_at timestamps and advances:
+      OUTREACH_SENT → FOLLOW_UP_1 (after 3 days)
+      FOLLOW_UP_1   → FOLLOW_UP_2 (after 3 more days)
+    """
+    now = datetime.now(timezone.utc)
+    stats = {"follow_up_1_sent": 0, "follow_up_2_sent": 0, "failed": 0, "not_due": 0}
+
+    for current_status, (next_status, delay_days) in FOLLOWUP_DELAYS.items():
+        cutoff = now - timedelta(days=delay_days)
+
+        targets = (
+            session.query(ListicleTarget)
+            .filter(ListicleTarget.status == current_status)
+            .filter(ListicleTarget.editor_email.isnot(None))
+            .filter(ListicleTarget.outreach_sent_at <= cutoff)
+            .limit(limit)
+            .all()
+        )
+
+        for target in targets:
+            # Pick the right template set and step
+            if target.target_type == "podcast":
+                template_set = PODCAST_TEMPLATES
+            else:
+                template_set = TEMPLATES
+
+            template_key = "follow_up_1" if next_status == ListicleStatus.FOLLOW_UP_1 else "follow_up_2"
+            template = template_set.get(template_key)
+
+            if not template:
+                logger.debug(f"No {template_key} template for {target.target_type}, skipping {target.editor_email}")
+                stats["not_due"] += 1
+                continue
+
+            rendered = _render_template(template, target)
+
+            if dry_run:
+                print(f"[DRY RUN] {template_key} → {target.editor_email} | {rendered['subject']}")
+                print(f"  Sent initial: {target.outreach_sent_at.strftime('%Y-%m-%d') if target.outreach_sent_at else '?'}")
+                print(f"  Article: {target.title[:60]}")
+                print()
+                stats[f"{template_key}_sent"] += 1
+                continue
+
+            success = _send_via_resend(
+                settings=settings,
+                to_email=target.editor_email,
+                subject=rendered["subject"],
+                body=rendered["body"],
+            )
+
+            if success:
+                target.status = next_status
+                target.outreach_sent_at = now  # reset timer for next follow-up
+                session.commit()
+                stats[f"{template_key}_sent"] += 1
+                logger.info(f"{template_key} sent: {target.editor_email} — {target.title[:50]}")
+            else:
+                stats["failed"] += 1
+                logger.error(f"{template_key} failed: {target.editor_email}")
 
     return stats
 

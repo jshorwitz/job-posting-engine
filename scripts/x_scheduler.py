@@ -38,6 +38,7 @@ from engine.x.time_utils import (
     ensure_timezone,
     should_enrich_now,
     should_linkedin_post_now,
+    should_followup_now,
     should_listicle_outreach_now,
     should_post_now,
     slot_key,
@@ -226,6 +227,7 @@ def run_scan():
 
 
 LISTICLE_OUTREACH_ENABLED = os.environ.get("LISTICLE_OUTREACH_ENABLED", "true").lower() != "false"
+FOLLOWUP_ENABLED = os.environ.get("LISTICLE_FOLLOWUP_ENABLED", "true").lower() != "false"
 
 
 def run_listicle_outreach():
@@ -274,11 +276,36 @@ def run_listicle_outreach():
         logger.error("listicle outreach pipeline failed: %s", e, exc_info=True)
 
 
+def run_listicle_followups():
+    """Daily follow-up check — sends follow-up #1 (3 days) and #2 (6 days)."""
+    try:
+        from engine.config import Settings
+        from engine.db.database import init_db
+        from engine.listicle.outreach import send_followups
+
+        settings = Settings()
+        if not settings.resend_api_key:
+            logger.warning("listicle followups skipped: RESEND_API_KEY not set")
+            return
+
+        SessionFactory = init_db(settings.database_path)
+        session = SessionFactory()
+        stats = send_followups(session, settings, limit=30)
+        logger.info(
+            "followups: fu1=%d, fu2=%d, failed=%d",
+            stats["follow_up_1_sent"], stats["follow_up_2_sent"], stats["failed"],
+        )
+        session.close()
+
+    except Exception as e:
+        logger.error("listicle followups failed: %s", e, exc_info=True)
+
+
 def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="X Growth Engine Scheduler")
-    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "listicle"], help="Run once and exit")
+    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "listicle", "followups"], help="Run once and exit")
     args = parser.parse_args()
 
     if args.once == "post":
@@ -295,6 +322,9 @@ def main():
         return
     if args.once == "listicle":
         run_listicle_outreach()
+        return
+    if args.once == "followups":
+        run_listicle_followups()
         return
 
     # Long-lived scheduler loop
@@ -316,6 +346,7 @@ def main():
     logger.info("  LinkedIn native posting: %s", "enabled" if LINKEDIN_NATIVE_ENABLED else "disabled")
     logger.info("  enrichment pipeline: Mon-Fri at %d:00 ET", ENRICHMENT_HOUR_ET)
     logger.info("  listicle/podcast outreach: Mondays at 10:00 ET (%s)", "enabled" if LISTICLE_OUTREACH_ENABLED else "disabled")
+    logger.info("  follow-up emails: Mon-Fri at 11:00 ET (%s)", "enabled" if FOLLOWUP_ENABLED else "disabled")
 
     last_post_slot: str | None = None
     last_scan_time: float = 0  # scan immediately on startup
@@ -323,6 +354,7 @@ def main():
     last_li_date: str | None = None
     last_enrich_date: str | None = None
     last_listicle_date: str | None = None
+    last_followup_date: str | None = None
 
     while running:
         try:
@@ -356,6 +388,11 @@ def main():
                 logger.info("running weekly listicle/podcast outreach...")
                 run_listicle_outreach()
                 last_listicle_date = date_str(None, EASTERN_TZ)
+
+            if FOLLOWUP_ENABLED and should_followup_now(last_followup_date):
+                logger.info("running daily follow-up check...")
+                run_listicle_followups()
+                last_followup_date = date_str(None, EASTERN_TZ)
 
         except Exception as e:
             logger.error("scheduler loop error: %s", e, exc_info=True)
