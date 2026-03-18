@@ -297,19 +297,16 @@ def generate_reply(tweet_text: str, author_username: str) -> str:
 
 
 def get_synterai_oauth():
-    """Get OAuth 1.0a session for posting replies.
-
-    Prefers JOEL_X_* (Pay Per Use, supports v2 write) over X_ADS_* (Free tier).
-    """
+    """Get OAuth 1.0a session for @SynterAI account (replies and reposts)."""
     from requests_oauthlib import OAuth1Session
 
-    consumer_key = os.environ.get("JOEL_X_CONSUMER_KEY") or os.environ.get("X_ADS_CONSUMER_KEY")
-    consumer_secret = os.environ.get("JOEL_X_CONSUMER_SECRET") or os.environ.get("X_ADS_CONSUMER_SECRET")
-    access_token = os.environ.get("JOEL_X_ACCESS_TOKEN") or os.environ.get("X_ADS_ACCESS_TOKEN")
-    access_secret = os.environ.get("JOEL_X_ACCESS_TOKEN_SECRET") or os.environ.get("X_ADS_ACCESS_TOKEN_SECRET")
+    consumer_key = os.environ.get("X_ADS_CONSUMER_KEY")
+    consumer_secret = os.environ.get("X_ADS_CONSUMER_SECRET")
+    access_token = os.environ.get("X_ADS_ACCESS_TOKEN")
+    access_secret = os.environ.get("X_ADS_ACCESS_TOKEN_SECRET")
 
     if not all([consumer_key, consumer_secret, access_token, access_secret]):
-        raise RuntimeError("Missing JOEL_X_* or X_ADS_* OAuth credentials")
+        raise RuntimeError("Missing X_ADS_* OAuth credentials for @SynterAI")
 
     return OAuth1Session(
         consumer_key,
