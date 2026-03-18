@@ -6,9 +6,9 @@ from zoneinfo import ZoneInfo
 
 PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 EASTERN_TZ = ZoneInfo("America/New_York")
-X_POST_HOURS_PT = (9, 14, 16)
+X_POST_HOURS_PT = (9, 12, 15, 18)
 LINKEDIN_POST_HOUR_PT = 9
-LINKEDIN_POST_DAYS = {1, 2, 3}  # Tue, Wed, Thu
+LINKEDIN_POST_DAYS = {1, 2, 3, 5}  # Tue, Wed, Thu, Sat
 ENRICHMENT_HOUR_ET = 9
 ENRICHMENT_DAYS = {0, 1, 2, 3, 4}  # Mon-Fri
 JOB_DISCOVERY_HOUR_ET = 8

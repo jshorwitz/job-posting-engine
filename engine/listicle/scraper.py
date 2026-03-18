@@ -39,6 +39,17 @@ SEARCH_QUERIES = [
     "best AI campaign management tools",
     "top AI tools for digital advertising",
     "best ad automation platforms",
+    # Gumshoe high-volume topics (added 2026-03-17)
+    "best cross-channel advertising tools 2026",
+    "best AI tools for cross-channel advertising",
+    "best ad campaign automation platforms",
+    "best automated ad campaign management tools",
+    "best attribution software for marketing teams",
+    "best multi-touch attribution tools",
+    "best reporting tools for multi-channel ads",
+    "best multi-channel ad reporting platforms",
+    "best AI ad management platforms 2026",
+    "best AI PPC management tools",
 ]
 
 PODCAST_QUERIES = [
@@ -95,7 +106,9 @@ def _is_listicle_title(title: str) -> bool:
         r"\bad\b", r"\bads\b", r"advertis", r"campaign", r"ppc",
         r"paid media", r"media buy", r"programmatic", r"ad tech",
         r"adtech", r"ad management", r"ad platform", r"ad tool",
-        r"cross.?platform", r"cross.?channel",
+        r"cross.?platform", r"cross.?channel", r"attribution",
+        r"multi.?touch", r"reporting tool", r"marketing analytics",
+        r"ai market", r"ai tool",
     ]
     return any(re.search(p, title_lower) for p in relevance_keywords)
 
