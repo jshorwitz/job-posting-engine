@@ -25,6 +25,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger("geo_pipeline")
 
+# Hardcoded campaign IDs (Doppler prd config is at 300 secret limit)
+# These can be overridden via env vars if needed.
+_DEFAULT_CAMPAIGN_IDS = {
+    "SMARTLEAD_CAMPAIGN_ID_AMERICAS": "3070911",
+    "SMARTLEAD_CAMPAIGN_ID_EU": "3070909",
+    "SMARTLEAD_CAMPAIGN_ID_APAC": "3070910",
+}
+
+def _get_campaign_id(env_key: str) -> str:
+    """Get campaign ID from env var, falling back to hardcoded default."""
+    return os.environ.get(env_key, _DEFAULT_CAMPAIGN_IDS.get(env_key, ""))
+
 # Geo → Smartlead campaign mapping
 # Full query list for all geos
 _FULL_QUERIES = [
@@ -143,7 +155,7 @@ def main():
 
     for geo in geos:
         config = GEO_CAMPAIGNS[geo]
-        campaign_id = os.environ.get(config["campaign_id_env"], "")
+        campaign_id = _get_campaign_id(config["campaign_id_env"])
         if not campaign_id:
             logger.warning(f"No campaign ID for {geo} ({config['campaign_id_env']}), skipping")
             continue
