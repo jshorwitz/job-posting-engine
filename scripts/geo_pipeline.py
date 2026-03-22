@@ -26,44 +26,66 @@ logging.basicConfig(
 logger = logging.getLogger("geo_pipeline")
 
 # Geo → Smartlead campaign mapping
+# Full query list for all geos
+_FULL_QUERIES = [
+    "PPC Manager",
+    "Performance Marketing Manager",
+    "Media Buyer",
+    "Paid Media Manager",
+    "Growth Marketing Manager",
+    "Digital Advertising Manager",
+    "Demand Generation Manager",
+    "SEM Manager",
+    "Paid Search Analyst",
+    "Campaign Manager",
+    "Marketing Operations Manager",
+    "User Acquisition Manager",
+    "Ecommerce Marketing Manager",
+    "Programmatic Media Buyer",
+    "Head of Paid Media",
+    "Director of Paid Acquisition",
+]
+
+# Shorter query list for smaller markets (avoid burning Sumble credits on low-volume geos)
+_CORE_QUERIES = [
+    "PPC Manager",
+    "Performance Marketing",
+    "Media Buyer",
+    "Paid Media Manager",
+    "Growth Marketing Manager",
+    "Digital Advertising Manager",
+]
+
 GEO_CAMPAIGNS = {
     "americas": {
         "campaign_id_env": "SMARTLEAD_CAMPAIGN_ID_AMERICAS",
-        "countries": ["US", "CA"],
-        "queries": [
-            "PPC Manager",
-            "Performance Marketing Manager",
-            "Media Buyer",
-            "Paid Media Manager",
-            "Growth Marketing Manager",
-            "Digital Advertising Manager",
-            "Demand Generation Manager",
-            "SEM Manager",
-            "Paid Search Analyst",
-            "Campaign Manager",
-        ],
+        "countries": ["US", "CA", "MX", "BR", "AR", "CO"],
+        "queries": _FULL_QUERIES,
     },
-    "eu": {
+    "eu_west": {
         "campaign_id_env": "SMARTLEAD_CAMPAIGN_ID_EU",
-        "countries": ["GB", "DE", "NL", "FR", "IE"],
-        "queries": [
-            "PPC Manager",
-            "Performance Marketing",
-            "Paid Media Manager",
-            "Growth Marketing Manager",
-            "Digital Advertising Manager",
-        ],
+        "countries": ["GB", "IE", "FR", "NL", "BE"],
+        "queries": _FULL_QUERIES,
+    },
+    "eu_central": {
+        "campaign_id_env": "SMARTLEAD_CAMPAIGN_ID_EU",
+        "countries": ["DE", "AT", "CH", "PL", "CZ", "DK", "SE", "NO", "FI"],
+        "queries": _CORE_QUERIES,
+    },
+    "eu_south": {
+        "campaign_id_env": "SMARTLEAD_CAMPAIGN_ID_EU",
+        "countries": ["ES", "PT", "IT", "GR", "IL"],
+        "queries": _CORE_QUERIES,
     },
     "apac": {
         "campaign_id_env": "SMARTLEAD_CAMPAIGN_ID_APAC",
-        "countries": ["AU", "NZ"],
-        "queries": [
-            "PPC Manager",
-            "Performance Marketing",
-            "Media Buyer",
-            "Paid Media Manager",
-            "Growth Marketing Manager",
-        ],
+        "countries": ["AU", "NZ", "SG", "HK", "JP", "KR", "IN"],
+        "queries": _FULL_QUERIES,
+    },
+    "mena_africa": {
+        "campaign_id_env": "SMARTLEAD_CAMPAIGN_ID_EU",  # Send on EU timezone (close enough)
+        "countries": ["AE", "SA", "ZA", "NG", "KE", "EG"],
+        "queries": _CORE_QUERIES,
     },
 }
 
