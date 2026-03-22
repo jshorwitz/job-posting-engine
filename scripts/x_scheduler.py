@@ -267,18 +267,25 @@ FOLLOWUP_ENABLED = os.environ.get("LISTICLE_FOLLOWUP_ENABLED", "true").lower() !
 
 
 def run_job_discovery():
-    """Daily Sumble job discovery → contact enrichment → email outreach."""
+    """Daily geo-routed job discovery → enrichment → Smartlead outreach.
+
+    Runs the geo_pipeline.py script which discovers leads across US, CA,
+    UK, DE, NL, FR, IE, AU, NZ and routes them to timezone-appropriate
+    Smartlead campaigns (Americas/EU/APAC).
+    """
     try:
         import subprocess
+        scripts_dir = os.path.dirname(os.path.abspath(__file__))
+        geo_script = os.path.join(scripts_dir, "geo_pipeline.py")
         result = subprocess.run(
-            [sys.executable, "-m", "engine.pipeline", "--channel", "email", "--limit", str(JOB_DISCOVERY_LIMIT)],
-            capture_output=True, text=True, timeout=300,
+            [sys.executable, geo_script],
+            capture_output=True, text=True, timeout=1800,  # 30 min for full geo sweep
         )
-        logger.info("job discovery stdout: %s", result.stdout[-500:] if result.stdout else "(empty)")
+        logger.info("geo pipeline stdout: %s", result.stdout[-1000:] if result.stdout else "(empty)")
         if result.returncode != 0:
-            logger.error("job discovery stderr: %s", result.stderr[-500:] if result.stderr else "(empty)")
+            logger.error("geo pipeline stderr: %s", result.stderr[-500:] if result.stderr else "(empty)")
     except Exception as e:
-        logger.error("job discovery failed: %s", e, exc_info=True)
+        logger.error("geo pipeline failed: %s", e, exc_info=True)
 
 
 def run_listicle_outreach():
