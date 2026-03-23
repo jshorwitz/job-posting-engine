@@ -45,6 +45,7 @@ from engine.x.time_utils import (
     should_listicle_outreach_now,
     should_post_now,
     should_synter_campaign_now,
+    should_daily_report_now,
     slot_key,
 )
 
@@ -435,6 +436,7 @@ def main():
     last_job_date: str | None = None
     last_listicle_date: str | None = None
     last_followup_date: str | None = None
+    last_report_date: str | None = None
     last_campaign_date: str | None = None
 
     while running:
@@ -484,6 +486,21 @@ def main():
                 logger.info("running daily follow-up check...")
                 run_listicle_followups()
                 last_followup_date = date_str(None, EASTERN_TZ)
+
+            if should_daily_report_now(last_report_date):
+                logger.info("sending daily growth engine report...")
+                try:
+                    import subprocess
+                    scripts_dir = os.path.dirname(os.path.abspath(__file__))
+                    report_script = os.path.join(scripts_dir, "daily_report.py")
+                    result = subprocess.run(
+                        [sys.executable, report_script, "--to", "joel@synterai.com"],
+                        capture_output=True, text=True, timeout=120,
+                    )
+                    logger.info("daily report: %s", result.stdout[-300:] if result.stdout else "(empty)")
+                except Exception as e:
+                    logger.error("daily report failed: %s", e)
+                last_report_date = date_str(None, EASTERN_TZ)
 
         except Exception as e:
             logger.error("scheduler loop error: %s", e, exc_info=True)

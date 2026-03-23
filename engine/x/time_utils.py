@@ -19,6 +19,8 @@ LISTICLE_OUTREACH_HOUR_ET = 10
 LISTICLE_OUTREACH_DAY = 1  # Tuesday
 FOLLOWUP_HOUR_ET = 11
 FOLLOWUP_DAYS = {0, 1, 2, 3, 4}  # Mon-Fri
+DAILY_REPORT_HOUR_ET = 18  # 6pm ET
+DAILY_REPORT_DAYS = {0, 1, 2, 3, 4}  # Mon-Fri
 
 
 def ensure_timezone(now: datetime | None, tz: ZoneInfo) -> datetime:
@@ -101,4 +103,14 @@ def should_followup_now(last_followup_date: str | None, now: datetime | None = N
         current.hour == FOLLOWUP_HOUR_ET
         and current.weekday() in FOLLOWUP_DAYS
         and date_str(current, EASTERN_TZ) != last_followup_date
+    )
+
+
+def should_daily_report_now(last_report_date: str | None, now: datetime | None = None) -> bool:
+    """Daily report — Mon-Fri at 6pm ET."""
+    current = ensure_timezone(now, EASTERN_TZ)
+    return (
+        current.hour == DAILY_REPORT_HOUR_ET
+        and current.weekday() in DAILY_REPORT_DAYS
+        and date_str(current, EASTERN_TZ) != last_report_date
     )
