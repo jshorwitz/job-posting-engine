@@ -1,0 +1,127 @@
+graph TB
+    subgraph SCHEDULER["Railway Scheduler Service<br/>(x_scheduler.py — polls every 60s)"]
+        direction TB
+        SCHED_X["X Post Check<br/>9am/12pm/3pm/6pm PT"]
+        SCHED_ENGAGE["Engagement Scan<br/>Every 4 hours"]
+        SCHED_MCP["MCP Reply Scan<br/>Every 2 hours"]
+        SCHED_LI_POST["LinkedIn Post Check<br/>Tue-Thu/Sat 9am PT"]
+        SCHED_JOBS["Job Discovery<br/>Mon-Fri 8am ET"]
+        SCHED_ENRICH["Enrichment<br/>Mon-Fri 9am ET"]
+        SCHED_LISTICLE["Listicle Outreach<br/>Tues 10am ET"]
+        SCHED_FOLLOWUP["Listicle Follow-ups<br/>Mon-Fri 11am ET"]
+    end
+
+    %% ─── DATA SOURCES ───
+    subgraph SOURCES["Data Sources"]
+        X_CAL["content_calendar.json<br/>(7+ weeks of tweets)"]
+        LI_CAL["linkedin_calendar.json<br/>(Tue-Thu/Sat posts)"]
+        SUMBLE["Sumble Jobs API<br/>(Head of Growth roles)"]
+        SERPER["Serper / Google CSE<br/>(listicle discovery)"]
+        HUNTER["Hunter.io<br/>(email enrichment)"]
+        SPYFU["SpyFu API<br/>(PPC/SEO intel)"]
+        BUILTWITH["BuiltWith API<br/>(tech stack)"]
+        X_SEARCH["X Search API<br/>(35 topic queries)"]
+        MCP_SEARCH["X Search API<br/>(30 MCP/Claude queries)"]
+    end
+
+    %% ─── AI / PROCESSING ───
+    subgraph AI["AI Processing"]
+        OPENAI_EMAIL["OpenAI<br/>Email Writer"]
+        OPENAI_REPLY["OpenAI<br/>MCP Reply Generator"]
+        GEMINI["Gemini Imagen 4<br/>LinkedIn Image Gen"]
+    end
+
+    %% ─── STATE / DB ───
+    subgraph STATE["SQLite + State Files"]
+        DB_JOBS["job_postings"]
+        DB_EMAIL["email_log"]
+        DB_LISTICLE["listicle_targets"]
+        DB_DRIP["drip_state<br/>(18-step sequence)"]
+        LOG_X[".x_posted_log.json"]
+        LOG_LI[".linkedin_calendar_posted_log.json"]
+        LOG_MCP[".x_mcp_replied_log.json"]
+        LOG_ENGAGE[".x_scan_candidates.json"]
+    end
+
+    %% ─── DELIVERY CHANNELS ───
+    subgraph EMAIL_OUT["Email Delivery"]
+        RESEND["Resend API<br/>(joel@syntermedia.ai)"]
+        LOOPS["Loops.so API<br/>(drip campaigns)"]
+    end
+
+    subgraph X_OUT["X (Twitter) Delivery"]
+        X_API["X API v2<br/>(@JSHorwitz)"]
+    end
+
+    subgraph LI_OUT["LinkedIn Delivery"]
+        LI_API["LinkedIn API<br/>(SynterAI org page)"]
+        LI_CROSSPOST["LinkedIn Crosspost<br/>(from X posts)"]
+    end
+
+    %% ─── EMAIL VIA RESEND (Listicle Outreach) ───
+    SCHED_LISTICLE --> SERPER
+    SERPER -->|"discover articles"| DB_LISTICLE
+    DB_LISTICLE -->|"DISCOVERED"| HUNTER
+    HUNTER -->|"find editor email"| DB_LISTICLE
+    DB_LISTICLE -->|"CONTACT_FOUND"| RESEND
+    RESEND -->|"OUTREACH_SENT"| DB_LISTICLE
+
+    SCHED_FOLLOWUP --> DB_LISTICLE
+    DB_LISTICLE -->|"3-day & 6-day<br/>follow-ups"| RESEND
+
+    %% ─── EMAIL VIA LOOPS (Job Discovery) ───
+    SCHED_JOBS --> SUMBLE
+    SUMBLE -->|"new jobs"| DB_JOBS
+    DB_JOBS --> HUNTER
+    HUNTER -->|"CEO/founder email"| OPENAI_EMAIL
+    OPENAI_EMAIL -->|"personalized email"| LOOPS
+    LOOPS --> DB_EMAIL
+    LOOPS --> DB_DRIP
+
+    %% ─── ENRICHMENT ───
+    SCHED_ENRICH --> DB_EMAIL
+    DB_EMAIL -->|"1-day old contacts"| SPYFU
+    DB_EMAIL -->|"tech detection"| BUILTWITH
+    SPYFU -->|"PPC/SEO props"| LOOPS
+    BUILTWITH -->|"ad pixel data"| LOOPS
+
+    %% ─── X POSTING ───
+    SCHED_X --> X_CAL
+    X_CAL -->|"next scheduled post"| X_API
+    X_API --> LOG_X
+    X_API -->|"auto crosspost<br/>(eligible types)"| LI_CROSSPOST
+    LI_CROSSPOST --> LI_API
+
+    %% ─── X ENGAGEMENT SCANNING ───
+    SCHED_ENGAGE --> X_SEARCH
+    X_SEARCH -->|"filter by engagement"| LOG_ENGAGE
+
+    %% ─── X MCP REPLY SCANNING ───
+    SCHED_MCP --> MCP_SEARCH
+    MCP_SEARCH -->|"Claude/MCP/Ads tweets"| OPENAI_REPLY
+    OPENAI_REPLY -->|"founder-voice reply"| X_API
+    X_API --> LOG_MCP
+
+    %% ─── LINKEDIN NATIVE POSTING ───
+    SCHED_LI_POST --> LI_CAL
+    LI_CAL -->|"has_image?"| GEMINI
+    GEMINI -->|"generated image"| LI_API
+    LI_CAL -->|"text only"| LI_API
+    LI_API --> LOG_LI
+
+    %% ─── STYLING ───
+    classDef scheduler fill:#1a1a2e,stroke:#e94560,color:#fff,stroke-width:2px
+    classDef source fill:#16213e,stroke:#0f3460,color:#fff
+    classDef ai fill:#533483,stroke:#8e44ad,color:#fff
+    classDef state fill:#1b1b2f,stroke:#4a4a6a,color:#ccc
+    classDef email fill:#c0392b,stroke:#e74c3c,color:#fff
+    classDef xout fill:#1da1f2,stroke:#0d8bd9,color:#fff
+    classDef liout fill:#0077b5,stroke:#005885,color:#fff
+
+    class SCHED_X,SCHED_ENGAGE,SCHED_MCP,SCHED_LI_POST,SCHED_JOBS,SCHED_ENRICH,SCHED_LISTICLE,SCHED_FOLLOWUP scheduler
+    class X_CAL,LI_CAL,SUMBLE,SERPER,HUNTER,SPYFU,BUILTWITH,X_SEARCH,MCP_SEARCH source
+    class OPENAI_EMAIL,OPENAI_REPLY,GEMINI ai
+    class DB_JOBS,DB_EMAIL,DB_LISTICLE,DB_DRIP,LOG_X,LOG_LI,LOG_MCP,LOG_ENGAGE state
+    class RESEND,LOOPS email
+    class X_API xout
+    class LI_API,LI_CROSSPOST liout

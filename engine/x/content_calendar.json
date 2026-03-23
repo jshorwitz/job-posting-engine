@@ -28,7 +28,7 @@
       "day": "monday",
       "time": "18:00",
       "type": "growth_tactic",
-      "text": "growth hack: target competitor pricing pages with pmax\n\n\"gomarble pricing\" \"albert ai pricing\" \"ryze pricing\"\n\nsomeone searching pricing is ready to buy\n\nthen retarget that traffic with display\n\nsynter does both from one conversation"
+      "text": "growth hack: target competitor pricing pages with pmax\n\nsomeone searching \"[competitor] pricing\" is ready to buy\n\nthen retarget that traffic with display\n\nsynter does both from one conversation"
     },
     {
       "day": "tuesday",
@@ -234,7 +234,7 @@
       "day": "thursday",
       "time": "18:00",
       "type": "growth_tactic",
-      "text": "the search term audit that pays for itself:\n\n> pull search terms weekly\n> block \"free\", \"jobs\", \"tutorial\" and irrelevant competitor names\n> add converting terms as exact match keywords\n\nwe found \"monetag alternative\" converting at $1.95 CPA\n\nnow it's a dedicated keyword"
+      "text": "the search term audit that pays for itself:\n\n> pull search terms weekly\n> block \"free\", \"jobs\", \"tutorial\" and irrelevant terms\n> add converting terms as exact match keywords\n\nwe found a \"[tool] alternative\" term converting at $1.95 CPA\n\nnow it's a dedicated keyword"
     },
     {
       "day": "friday",
@@ -264,7 +264,7 @@
       "day": "saturday",
       "time": "12:00",
       "type": "demand_insight",
-      "text": "AI chatbots are the new referral source nobody's tracking\n\nchatgpt sends gomarble 870 visits/mo\n\nperplexity sends get-ryze 214 visits/mo\n\nif AI agents recommend your competitor and not you, you lose before the click"
+      "text": "AI chatbots are the new referral source nobody's tracking\n\nchatgpt and perplexity are sending your competitors hundreds of visits per month\n\nif AI agents recommend them and not you, you lose before the click"
     },
     {
       "day": "sunday",

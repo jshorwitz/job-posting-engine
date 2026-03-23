@@ -556,8 +556,20 @@ def _handle_email_outreach(
             f"(LinkedIn: {ceo_linkedin})"
         )
     else:
-        # Try Loops first, fall back to SMTP
-        if settings.loops_api_key:
+        # Try Smartlead first, then Loops, fall back to SMTP
+        if settings.smartlead_api_key:
+            from engine.outreach.smartlead_sender import send_email as smartlead_send
+
+            success = smartlead_send(
+                settings=settings,
+                to_email=ceo_email,
+                to_name=ceo_name,
+                subject=subject,
+                body=body,
+                company_name=org_name,
+                job_title=job_title,
+            )
+        elif settings.loops_api_key:
             from engine.outreach.loops_sender import send_email as loops_send
 
             success = loops_send(

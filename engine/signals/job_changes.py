@@ -49,105 +49,191 @@ TARGET_TITLES = [
 COMPANY_SIZES = ["21-50", "51-100", "101-200", "201-500"]
 
 
+def enrich_person_apollo(
+    settings: Settings,
+    *,
+    first_name: str = "",
+    last_name: str = "",
+    domain: str = "",
+    linkedin_url: str = "",
+) -> dict[str, Any] | None:
+    """Enrich a person via Apollo people/match (works on free plan).
+
+    Returns full profile with email, title, employment history.
+    """
+    api_key = getattr(settings, "apollo_api_key", "") or ""
+    if not api_key:
+        return None
+
+    payload: dict[str, Any] = {}
+    if first_name:
+        payload["first_name"] = first_name
+    if last_name:
+        payload["last_name"] = last_name
+    if domain:
+        payload["organization_domain"] = domain
+    if linkedin_url:
+        payload["linkedin_url"] = linkedin_url
+
+    if not payload:
+        return None
+
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.post(
+                f"{APOLLO_API_URL}/people/match",
+                headers={"X-Api-Key": api_key, "Content-Type": "application/json"},
+                json=payload,
+            )
+            if resp.status_code != 200:
+                return None
+
+            person = resp.json().get("person")
+            if not person:
+                return None
+
+            org = person.get("organization", {}) or {}
+            employment = person.get("employment_history", []) or []
+
+            # Detect recent job change
+            is_recent_change = False
+            previous_company = ""
+            if len(employment) >= 2:
+                current = employment[0]
+                start_date = current.get("start_date", "")
+                if start_date:
+                    # Check if started within last 6 months
+                    try:
+                        from datetime import datetime
+                        start = datetime.strptime(start_date[:10], "%Y-%m-%d")
+                        days_ago = (datetime.now() - start).days
+                        if days_ago <= 180:
+                            is_recent_change = True
+                            previous_company = employment[1].get("organization_name", "")
+                    except Exception:
+                        pass
+
+            return {
+                "email": person.get("email", ""),
+                "first_name": person.get("first_name", ""),
+                "last_name": person.get("last_name", ""),
+                "full_name": person.get("name", ""),
+                "title": person.get("title", ""),
+                "linkedin_url": person.get("linkedin_url", ""),
+                "company_name": org.get("name", ""),
+                "company_domain": org.get("primary_domain", ""),
+                "company_size": org.get("estimated_num_employees", ""),
+                "company_industry": org.get("industry", ""),
+                "is_recent_change": is_recent_change,
+                "previous_company": previous_company,
+                "signal_type": "job_change",
+            }
+
+    except Exception as exc:
+        logger.warning(f"[JobChanges] Apollo match error: {exc}")
+        return None
+
+
 def discover_job_changes(
     settings: Settings,
     *,
     max_results: int = 100,
     days_back: int = 30,
 ) -> list[dict[str, Any]]:
-    """Find people who recently changed into marketing leadership roles.
+    """Find marketing leaders via Apollo people/match.
 
-    Uses Apollo's People Search with job_change_date filter.
-    Returns list of dicts with contact + company info.
+    Uses Serper to find recent "new CMO" / "new VP Marketing" announcements,
+    then enriches with Apollo to get email + employment history.
     """
     api_key = getattr(settings, "apollo_api_key", "") or ""
+    serper_key = getattr(settings, "serper_api_key", "") or ""
+
     if not api_key:
         logger.warning("[JobChanges] APOLLO_API_KEY not set")
         return []
 
     results: list[dict[str, Any]] = []
-    seen_emails: set[str] = set()
-    page = 1
+    seen: set[str] = set()
 
-    while len(results) < max_results:
-        try:
-            with httpx.Client(timeout=30.0) as client:
-                resp = client.post(
-                    f"{APOLLO_API_URL}/mixed_people/search",
-                    headers={"X-Api-Key": api_key},  # Apollo uses header auth
-                    json={
-                        "person_titles": TARGET_TITLES,
-                        "organization_num_employees_ranges": COMPANY_SIZES,
-                        "person_seniorities": ["director", "vp", "c_suite", "manager"],
-                        "contact_email_status": ["verified"],
-                        "person_locations": [
-                            "United States", "Canada", "United Kingdom",
-                            "Germany", "Australia", "Netherlands", "France",
-                            "Singapore", "India", "Israel",
-                        ],
-                        "q_organization_keyword_tags": [
-                            "advertising", "marketing", "ecommerce",
-                            "saas", "digital marketing", "media",
-                        ],
-                        "page": page,
-                        "per_page": 50,
-                    },
-                )
+    # Use Serper to find recent leadership announcements
+    queries = [
+        "new VP Marketing hired 2026",
+        "new Head of Growth appointed 2026",
+        "new CMO named 2026",
+        "new Director of Marketing joins 2026",
+        "new Head of Paid Media hired",
+        "appointed Chief Marketing Officer 2026",
+        "joins as VP Growth 2026",
+        "named Head of Digital Marketing",
+        "new Director Demand Generation",
+        "promoted VP Marketing",
+    ]
 
-                if resp.status_code != 200:
-                    logger.warning(f"[JobChanges] Apollo HTTP {resp.status_code}: {resp.text[:200]}")
-                    break
-
-                data = resp.json()
-                people = data.get("people", [])
-
-                if not people:
-                    break
-
-                for person in people:
-                    email = person.get("email", "")
-                    if not email or email in seen_emails:
+    if serper_key:
+        logger.info("[JobChanges] Discovering leadership changes via Serper News...")
+        for query in queries:
+            if len(results) >= max_results:
+                break
+            try:
+                with httpx.Client(timeout=15.0) as client:
+                    resp = client.post(
+                        "https://google.serper.dev/news",
+                        headers={"X-API-KEY": serper_key},
+                        json={"q": query, "num": 10},
+                    )
+                    if resp.status_code != 200:
                         continue
-                    seen_emails.add(email)
 
-                    org = person.get("organization", {}) or {}
-                    employment = person.get("employment_history", [])
+                    for item in resp.json().get("news", []):
+                        title = item.get("title", "")
+                        snippet = item.get("snippet", "")
 
-                    # Check if this is a recent job change
-                    is_recent_change = False
-                    previous_company = ""
-                    if employment and len(employment) >= 2:
-                        current = employment[0]
-                        previous = employment[1]
-                        # Apollo includes start_date for current role
-                        start_date = current.get("start_date", "")
-                        if start_date:
-                            is_recent_change = True
-                            previous_company = previous.get("organization_name", "")
+                        # Extract person name and company from title
+                        import re
+                        # Pattern: "PersonName joins/named/appointed CompanyName as Title"
+                        patterns = [
+                            r'(\w+\s+\w+)\s+(?:joins|named|appointed|hired|promoted)\s+(?:at|as|to)\s+(\w[\w\s&]+)',
+                            r'(\w[\w\s&]+?)\s+(?:hires|appoints|names|promotes)\s+(\w+\s+\w+)\s+as',
+                        ]
 
-                    results.append({
-                        "email": email,
-                        "first_name": person.get("first_name", ""),
-                        "last_name": person.get("last_name", ""),
-                        "full_name": person.get("name", ""),
-                        "title": person.get("title", ""),
-                        "linkedin_url": person.get("linkedin_url", ""),
-                        "company_name": org.get("name", ""),
-                        "company_domain": org.get("primary_domain", ""),
-                        "company_size": org.get("estimated_num_employees", ""),
-                        "company_industry": org.get("industry", ""),
-                        "is_recent_change": is_recent_change,
-                        "previous_company": previous_company,
-                        "signal_type": "job_change",
-                    })
+                        for pattern in patterns:
+                            m = re.search(pattern, title, re.IGNORECASE)
+                            if m:
+                                # Try to enrich with Apollo
+                                name_or_company = m.group(1).strip()
+                                company_or_name = m.group(2).strip()
 
-                page += 1
-                if page > 5:  # Max 5 pages (250 results)
-                    break
+                                # Try Serper to find the company domain
+                                domain_resp = client.post(
+                                    "https://google.serper.dev/search",
+                                    headers={"X-API-KEY": serper_key},
+                                    json={"q": f"{company_or_name} company website", "num": 1},
+                                )
+                                if domain_resp.status_code == 200:
+                                    organic = domain_resp.json().get("organic", [])
+                                    if organic:
+                                        from urllib.parse import urlparse
+                                        domain = urlparse(organic[0].get("link", "")).netloc.replace("www.", "")
 
-        except Exception as exc:
-            logger.warning(f"[JobChanges] Error on page {page}: {exc}")
-            break
+                                        if domain and domain not in seen:
+                                            seen.add(domain)
+                                            # Enrich with Apollo
+                                            parts = name_or_company.split()
+                                            if len(parts) >= 2:
+                                                enriched = enrich_person_apollo(
+                                                    settings,
+                                                    first_name=parts[0],
+                                                    last_name=" ".join(parts[1:]),
+                                                    domain=domain,
+                                                )
+                                                if enriched and enriched.get("email"):
+                                                    results.append(enriched)
+                                                    logger.info(f"[JobChanges] Found: {enriched['email']} | {enriched['full_name']} @ {enriched['company_name']}")
+                                break
+
+            except Exception as exc:
+                logger.warning(f"[JobChanges] Error: {exc}")
+                continue
 
     logger.info(f"[JobChanges] Discovered {len(results)} marketing leaders")
     return results
@@ -158,12 +244,6 @@ def discover_new_hires(
     *,
     max_results: int = 50,
 ) -> list[dict[str, Any]]:
-    """Find companies that recently hired marketing leadership.
-
-    Similar to job_changes but focused on the company signal
-    rather than the individual.
-    """
-    # Reuse job_changes — a new hire IS a job change from the company's perspective
+    """Find companies that recently hired marketing leadership."""
     changes = discover_job_changes(settings, max_results=max_results)
-    # Filter to only recent changes
     return [c for c in changes if c.get("is_recent_change")]

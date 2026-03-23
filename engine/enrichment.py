@@ -47,6 +47,7 @@ def enrich_lead(
     skip_spyfu: bool = False,
     skip_builtwith: bool = False,
     skip_firecrawl: bool = False,
+    skip_synter: bool = False,
     skip_ai: bool = False,
 ) -> dict[str, Any]:
     """Enrich a single lead with all available data sources.
@@ -74,6 +75,11 @@ def enrich_lead(
     if not skip_firecrawl and settings.firecrawl_api_key and domain:
         time.sleep(SOURCE_DELAY)
         result.update(_enrich_firecrawl(settings, domain))
+
+    # ── Synter / SimilarWeb enrichment ─────────────────────────────
+    if not skip_synter and settings.synter_api_key and settings.synter_enrich_enabled and domain:
+        time.sleep(SOURCE_DELAY)
+        result.update(_enrich_synter(settings, domain, company_name))
 
     # ── AI personalization ───────────────────────────────────────
     if not skip_ai and settings.openai_api_key:
@@ -268,3 +274,56 @@ Rules:
     except Exception as exc:
         logger.warning(f"[Enrich] AI personalization failed: {exc}")
         return ""
+
+
+def _enrich_synter(settings: Settings, domain: str, company_name: str) -> dict[str, Any]:
+    """Fetch SimilarWeb traffic data via Synter MCP and generate media plan.
+
+    Returns prefixed dict with synter_* and mediaplan_* keys.
+    """
+    from engine.clients.synter import SynterClient, generate_media_plan
+
+    data: dict[str, Any] = {}
+
+    try:
+        client = SynterClient(settings)
+    except ValueError:
+        logger.warning("[Enrich] Synter credentials not configured")
+        return data
+
+    analysis = client.analyze_domain(domain)
+    if not analysis:
+        logger.info(f"[Enrich] Synter: no data for {domain}")
+        return data
+
+    # Store raw SimilarWeb metrics
+    data["synter_monthly_visits"] = analysis.get("monthly_visits", 0)
+    data["synter_bounce_rate"] = analysis.get("bounce_rate", 0)
+    data["synter_pages_per_visit"] = analysis.get("pages_per_visit", 0)
+    data["synter_avg_duration"] = analysis.get("avg_visit_duration_sec", 0)
+    data["synter_desktop_pct"] = analysis.get("desktop_pct", 0)
+    data["synter_mobile_pct"] = analysis.get("mobile_pct", 0)
+    data["synter_paid_search_pct"] = analysis.get("paid_search_pct", 0)
+    data["synter_organic_pct"] = analysis.get("organic_search_pct", 0)
+    data["synter_direct_pct"] = analysis.get("direct_pct", 0)
+    data["synter_social_pct"] = analysis.get("social_pct", 0)
+    data["synter_global_rank"] = analysis.get("global_rank", 0)
+
+    # Generate personalized media plan
+    plan = generate_media_plan(analysis, company_name)
+    data["mediaplan_tier"] = plan["tier"]
+    data["mediaplan_opportunity"] = plan["opportunity_level"]
+    data["mediaplan_total_budget"] = plan["total_budget"]
+    data["mediaplan_channels"] = ", ".join(plan["channels"])
+    data["mediaplan_projected_visits_low"] = plan["projected_visits_low"]
+    data["mediaplan_projected_visits_high"] = plan["projected_visits_high"]
+    data["mediaplan_uplift_pct"] = f"{plan['uplift_low_pct']}-{plan['uplift_high_pct']}%"
+    data["mediaplan_talking_points"] = " | ".join(plan["talking_points"])
+
+    logger.info(
+        f"[Enrich] Synter: {domain} → {analysis.get('monthly_visits', 0):,} visits, "
+        f"{analysis.get('paid_search_pct', 0):.1f}% paid → {plan['tier']} tier, "
+        f"${plan['total_budget']:,} plan"
+    )
+
+    return data

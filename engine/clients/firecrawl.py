@@ -118,3 +118,60 @@ class FirecrawlClient:
             "description": description,
             "title": title,
         }
+
+    def scrape_url(self, url: str) -> dict[str, str] | None:
+        """Scrape a specific URL and return markdown content.
+
+        Returns dict with keys:
+            markdown:    Main content as markdown (truncated to 4000 chars)
+            title:       Page title
+            description: Meta description
+        or None on failure.
+        """
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                resp = client.post(
+                    SCRAPE_URL,
+                    headers={
+                        "Authorization": f"Bearer {self._api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "url": url,
+                        "pageOptions": {
+                            "onlyMainContent": True,
+                            "includeHtml": False,
+                        },
+                        "timeout": 25000,
+                    },
+                )
+
+            if resp.status_code != 200:
+                logger.warning(f"[Firecrawl] {url} returned {resp.status_code}")
+                return None
+
+            data = resp.json()
+        except httpx.TimeoutException:
+            logger.error(f"[Firecrawl] Timeout for {url}")
+            return None
+        except Exception as exc:
+            logger.error(f"[Firecrawl] Request error for {url}: {exc}")
+            return None
+
+        if not data.get("success") or not data.get("data"):
+            logger.info(f"[Firecrawl] No data for {url}")
+            return None
+
+        payload = data["data"]
+        markdown = payload.get("markdown", "")
+        metadata = payload.get("metadata") or {}
+
+        # Truncate markdown to keep GPT costs reasonable
+        if len(markdown) > 4000:
+            markdown = markdown[:4000] + "\n\n[truncated]"
+
+        return {
+            "markdown": markdown,
+            "title": metadata.get("title") or "",
+            "description": metadata.get("description") or "",
+        }

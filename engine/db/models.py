@@ -226,6 +226,26 @@ class PlatformScan(Base):
     scanned_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
+class RB2BVisitor(Base):
+    """Website visitors identified by RB2B.com for outbound campaigns."""
+
+    __tablename__ = "rb2b_visitors"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    visitor_email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    visitor_name: Mapped[str] = mapped_column(String(255), default="")
+    company_name: Mapped[str] = mapped_column(String(255), default="")
+    company_domain: Mapped[str] = mapped_column(String(255), default="", index=True)
+    job_title: Mapped[str] = mapped_column(String(255), default="")
+    linkedin_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    last_page_url: Mapped[str] = mapped_column(String(1000), default="")
+    visit_count: Mapped[int] = mapped_column(Integer, default=1)
+    outreach_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    enrichment_json: Mapped[str] = mapped_column(Text, default="{}")
+    first_visited_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    last_visited_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
 class ListicleStatus(str, enum.Enum):
     DISCOVERED = "discovered"
     CONTACT_FOUND = "contact_found"
@@ -268,3 +288,6 @@ class ListicleTarget(Base):
     outreach_sent_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     listed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     discovered_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    research_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    researched_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    research_error: Mapped[str | None] = mapped_column(Text, nullable=True)

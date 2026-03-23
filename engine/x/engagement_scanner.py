@@ -32,6 +32,22 @@ _DATA_DIR = Path("/data") if Path("/data").exists() else Path(__file__).parent
 CANDIDATES_PATH = _DATA_DIR / ".x_scan_candidates.json"
 ENGAGED_LOG = _DATA_DIR / ".x_engaged_log.json"
 
+# Competitor accounts to exclude from scan results and engagement
+COMPETITOR_BLOCKLIST = {
+    "goaborai",
+    "gomarble_ai",
+    "getryze",
+    "ryze_ai",
+    "albertai",
+    "albert_ai",
+    "monetag",
+    "adcreativeai",
+    "madgicx",
+    "revealbot",
+    "smartly_io",
+    "pencilai",
+}
+
 SEARCH_QUERIES = [
     # Original queries
     "AI ad campaign management",
@@ -217,12 +233,13 @@ def run_scan(min_likes: int = 20, min_followers: int = 500) -> list:
         except Exception:
             pass  # skip failed queries, log nothing (rate limits are common)
 
-    # Deduplicate by tweet ID, exclude already-engaged
+    # Deduplicate by tweet ID, exclude already-engaged and competitor accounts
     seen = set()
     unique = []
     for r in all_results:
         tid = r["tweet_id"]
-        if tid not in seen and tid not in engaged:
+        username = r.get("author_username", "").lower()
+        if tid not in seen and tid not in engaged and username not in COMPETITOR_BLOCKLIST:
             seen.add(tid)
             unique.append(r)
 

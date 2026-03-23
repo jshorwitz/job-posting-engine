@@ -28,6 +28,7 @@ from engine.db.models import ListicleTarget, ListicleStatus
 logger = logging.getLogger(__name__)
 
 RESEND_API_URL = "https://api.resend.com/emails"
+SMARTLEAD_API_BASE = "https://server.smartlead.ai/api/v1"
 
 
 # Email templates for the 3-step sequence
@@ -203,8 +204,40 @@ def _render_template(template: dict, target: ListicleTarget) -> dict:
     return {"subject": subject, "body": body}
 
 
+def _send_via_smartlead(
+    settings: Settings,
+    to_email: str,
+    to_name: str,
+    subject: str,
+    body: str,
+    company_name: str = "",
+) -> bool:
+    """Add lead to Smartlead campaign for warmed-up sending."""
+    from engine.outreach.smartlead_sender import send_email as smartlead_send
+    campaign_id = settings.smartlead_listicle_campaign_id or settings.smartlead_campaign_id
+    return smartlead_send(
+        settings=settings,
+        to_email=to_email,
+        to_name=to_name,
+        subject=subject,
+        body=body,
+        company_name=company_name,
+        campaign_id_override=campaign_id,
+    )
+
+
+def _send_email(settings: Settings, to_email: str, to_name: str, subject: str, body: str, company_name: str = "") -> bool:
+    """Send via SMTP/Gmail (preferred) → Smartlead → Resend (fallback)."""
+    if settings.smtp_user and settings.smtp_pass and settings.from_email:
+        from engine.outreach.smtp_sender import send_email as smtp_send
+        return smtp_send(settings=settings, to_email=to_email, to_name=to_name, subject=subject, body=body)
+    if settings.smartlead_api_key and (settings.smartlead_listicle_campaign_id or settings.smartlead_campaign_id):
+        return _send_via_smartlead(settings, to_email, to_name, subject, body, company_name)
+    return _send_via_resend(settings, to_email, subject, body)
+
+
 def _send_via_resend(settings: Settings, to_email: str, subject: str, body: str) -> bool:
-    """Send an email via Resend API."""
+    """Send an email via Resend API (fallback if EmailBison not configured)."""
     # Convert plain text to simple HTML
     html_body = body.replace("\n", "<br>")
 
@@ -268,11 +301,13 @@ def send_outreach(
             stats["sent"] += 1
             continue
 
-        success = _send_via_resend(
+        success = _send_email(
             settings=settings,
             to_email=target.editor_email,
+            to_name=target.editor_name or "",
             subject=rendered["subject"],
             body=rendered["body"],
+            company_name=target.domain or "",
         )
 
         if success:
@@ -289,7 +324,7 @@ def send_outreach(
 
 
 FOLLOWUP_DELAYS = {
-    ListicleStatus.OUTREACH_SENT: (ListicleStatus.FOLLOW_UP_1, 3),   # 3 days after initial
+    ListicleStatus.OUTREACH_SENT: (ListicleStatus.FOLLOW_UP_1, 2),   # 2 days after initial
     ListicleStatus.FOLLOW_UP_1: (ListicleStatus.FOLLOW_UP_2, 3),     # 3 days after follow-up 1
 }
 
@@ -297,12 +332,18 @@ FOLLOWUP_DELAYS = {
 def send_followups(session, settings: Settings, dry_run: bool = False, limit: int = 20) -> dict:
     """Send follow-up emails to targets that haven't responded after N days.
 
+    Enriches each target with article research (via Firecrawl + GPT-4o) to
+    generate personalized follow-ups. Falls back to static templates if
+    scraping or AI generation fails.
+
     Checks outreach_sent_at timestamps and advances:
       OUTREACH_SENT → FOLLOW_UP_1 (after 3 days)
       FOLLOW_UP_1   → FOLLOW_UP_2 (after 3 more days)
     """
+    from engine.listicle.followup_writer import generate_followup_email, get_or_create_research
+
     now = datetime.now(timezone.utc)
-    stats = {"follow_up_1_sent": 0, "follow_up_2_sent": 0, "failed": 0, "not_due": 0}
+    stats = {"follow_up_1_sent": 0, "follow_up_2_sent": 0, "failed": 0, "not_due": 0, "researched": 0}
 
     for current_status, (next_status, delay_days) in FOLLOWUP_DELAYS.items():
         cutoff = now - timedelta(days=delay_days)
@@ -317,35 +358,59 @@ def send_followups(session, settings: Settings, dry_run: bool = False, limit: in
         )
 
         for target in targets:
-            # Pick the right template set and step
-            if target.target_type == "podcast":
-                template_set = PODCAST_TEMPLATES
-            else:
-                template_set = TEMPLATES
-
             template_key = "follow_up_1" if next_status == ListicleStatus.FOLLOW_UP_1 else "follow_up_2"
-            template = template_set.get(template_key)
 
-            if not template:
-                logger.debug(f"No {template_key} template for {target.target_type}, skipping {target.editor_email}")
-                stats["not_due"] += 1
-                continue
+            # Try enriched AI-generated follow-up
+            subject, body = None, None
+            research = get_or_create_research(session, settings, target)
+            if research:
+                stats["researched"] += 1
+                try:
+                    subject, body = generate_followup_email(
+                        settings=settings,
+                        target=target,
+                        research=research,
+                        step=template_key,
+                    )
+                except Exception as e:
+                    logger.warning(f"AI follow-up generation failed for {target.editor_email}: {e}")
 
-            rendered = _render_template(template, target)
+            # Fallback to static template
+            if not subject or not body:
+                if target.target_type == "podcast":
+                    template_set = PODCAST_TEMPLATES
+                else:
+                    template_set = TEMPLATES
+                template = template_set.get(template_key)
+                if not template:
+                    logger.debug(f"No {template_key} template for {target.target_type}, skipping {target.editor_email}")
+                    stats["not_due"] += 1
+                    continue
+                rendered = _render_template(template, target)
+                subject, body = rendered["subject"], rendered["body"]
+                logger.info(f"Using static template for {target.editor_email} (research unavailable)")
 
             if dry_run:
-                print(f"[DRY RUN] {template_key} → {target.editor_email} | {rendered['subject']}")
+                enriched_tag = "✨ ENRICHED" if research else "📝 STATIC"
+                print(f"[DRY RUN] [{enriched_tag}] {template_key} → {target.editor_email}")
+                print(f"  Subject: {subject}")
                 print(f"  Sent initial: {target.outreach_sent_at.strftime('%Y-%m-%d') if target.outreach_sent_at else '?'}")
                 print(f"  Article: {target.title[:60]}")
+                if research:
+                    tools = research.get("mentioned_tools", [])[:5]
+                    print(f"  Tools found: {', '.join(tools) if tools else 'none'}")
+                print(f"  Body preview: {body[:120]}...")
                 print()
                 stats[f"{template_key}_sent"] += 1
                 continue
 
-            success = _send_via_resend(
+            success = _send_email(
                 settings=settings,
                 to_email=target.editor_email,
-                subject=rendered["subject"],
-                body=rendered["body"],
+                to_name=target.editor_name or "",
+                subject=subject,
+                body=body,
+                company_name=target.domain or "",
             )
 
             if success:

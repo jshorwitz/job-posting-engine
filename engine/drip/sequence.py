@@ -8,6 +8,19 @@ Each email is stored as a dict with:
 
 Placeholders are resolved in Python via render_template() before
 being pushed to Loops as contact properties.
+
+Available Synter/SimilarWeb placeholders (from enrichment.py):
+  - {{synter_monthly_visits}}     — Monthly website traffic
+  - {{synter_bounce_rate}}        — Bounce rate %
+  - {{synter_paid_search_pct}}    — Paid search traffic %
+  - {{synter_organic_pct}}        — Organic search traffic %
+  - {{synter_mobile_pct}}         — Mobile traffic %
+  - {{synter_global_rank}}        — Global website rank
+  - {{mediaplan_tier}}            — enterprise/growth/starter/launch
+  - {{mediaplan_total_budget}}    — Recommended total budget
+  - {{mediaplan_channels}}        — Recommended channels
+  - {{mediaplan_uplift_pct}}      — Projected traffic uplift %
+  - {{mediaplan_talking_points}}  — Auto-generated insights
 """
 
 from __future__ import annotations
@@ -49,14 +62,14 @@ _EMAIL_1 = {
 Hi {{firstName|there}},
 
 Saw {{company|your company}} is hiring a {{jobTitleHiring|growth leader}}.
-I've been doing paid media for 20+ years and I've seen what happens
-next about a hundred times. Let me save you the suspense.
+I pulled your traffic data — {{synter_monthly_visits|your site}} gets
+{{synter_monthly_visits|decent traffic}} monthly visits but only
+{{synter_paid_search_pct|minimal}}% comes from paid channels.
 
-You're going to hire an agency or a paid media person.
-They're going to take 30 days to set up conversion tracking.
-Then another 30 days to build landing pages. Then they'll
-hand-pick Google Ads, maybe LinkedIn, and burn through
-$50-100K before telling you the algorithm needs more time to learn.
+I've been doing paid media for 20+ years and I've seen what happens
+next about a hundred times. You hire an agency. They spend 30 days
+on tracking, 30 days on landing pages, then burn through $50-100K
+before telling you the algorithm needs more time.
 
 There's a faster way. Worth 15 min to hear it?
 
@@ -136,14 +149,15 @@ _EMAIL_5 = {
 The reason most paid media fails early isn't algorithm training.
 It's lazy targeting. Broad keywords, generic audiences, one platform.
 
-The fix: combine multiple ad platforms with hyper-targeting.
-Use enrichment data to build tight audiences. Find signals
-where there's already buying intent.
+Your site gets {{synter_monthly_visits|solid}} visits/month —
+{{synter_organic_pct|most}}% organic, {{synter_paid_search_pct|almost nothing}}% paid.
+That organic traffic tells you exactly what your audience searches for.
+Now imagine running paid on those same terms across 7 platforms.
 
 {{spyfu_top_competitor|Your closest competitor}} shares {{spyfu_shared_keywords|hundreds of}}
-keywords with you. That's a signal. Their audience is your audience.
+keywords with you. Their audience is your audience.
 
-Synter does this automatically across 7 platforms.
+Synter does this automatically.
 
 Joel""",
 }
@@ -216,14 +230,19 @@ _EMAIL_9 = {
     "body": """\
 {{firstName|Hi}},
 
-Imagine the agency model but:
-- Setup in minutes, not months
-- Monitors all 7 ad platforms, not just Google
-- Optimizes daily, not quarterly
-- Costs credits, not 15-20% of spend
+I built a media plan for {{company|your company}} based on your
+traffic profile ({{synter_monthly_visits|your current}} visits/mo,
+{{synter_bounce_rate|moderate}}% bounce rate, {{synter_mobile_pct|majority}}% mobile).
 
-That's what Synter is. AI agents that execute your campaigns.
-Not a dashboard. Not analytics. Actual execution.
+Here's what it looks like:
+- Channels: {{mediaplan_channels|Google, Meta, LinkedIn, Retargeting}}
+- Projected uplift: {{mediaplan_uplift_pct|50-100%}} more traffic in 90 days
+- Budget: ${{mediaplan_total_budget|8,000}} over the first 8 weeks
+
+That's not a pitch deck. That's what Synter's AI agents
+would actually execute — setup in minutes, not months.
+
+Worth 15 min to walk through it?
 
 Joel""",
 }
@@ -293,14 +312,17 @@ _EMAIL_13 = {
     "body": """\
 {{firstName|Hi}},
 
-Conservative numbers at {{spyfu_monthly_spend|your spend level}}:
+Let me make this concrete for {{company|your company}}:
 
-Agency management fee saved: 15-20% of spend.
-Waste from AI keyword pruning: 15-25% recovered.
-Setup time: 90 days → same day.
-Time saved: 20+ hours per week of manual campaign work.
+Current: {{synter_monthly_visits|your}} visits/mo, {{synter_paid_search_pct|minimal}}% paid.
+Projected: {{mediaplan_projected_visits_low|much more}}-{{mediaplan_projected_visits_high|significantly more}} visits/mo in 90 days.
+Budget: ${{mediaplan_total_budget|reasonable}} over 8 weeks.
+Channels: {{mediaplan_channels|Google, Meta, LinkedIn, Retargeting}}.
 
-Over a year at {{spyfu_annual_spend|your annual spend}}, that adds up.
+Plus at {{spyfu_monthly_spend|your current ad spend}}:
+- Agency fee saved: 15-20% of spend
+- Waste from keyword pruning: 15-25% recovered
+- Setup: 90 days → same day
 
 Worth a 15-min sanity check?
 {{settings_calendly_url}}
@@ -388,13 +410,14 @@ _EMAIL_18 = {
 
 Last email. Here's the full picture:
 
-You're hiring a growth leader. You'll also hire an agency
-or build an in-house team. That takes 90 days and $50-100K
-before you see results. Maybe.
-
-You spend {{spyfu_monthly_spend|real budget}} per month on ads.
+{{company|Your company}} gets {{synter_monthly_visits|decent}} visits/mo.
+Only {{synter_paid_search_pct|a fraction}}% from paid channels.
 {{spyfu_top_competitor|Your closest competitor}} is outspending you.
 You're missing {{builtwith_missing_pixels|several channels}}.
+
+I built a custom media plan: {{mediaplan_channels|Google, Meta, LinkedIn}}
+for ${{mediaplan_total_budget|a reasonable budget}} that could drive
+{{mediaplan_uplift_pct|50-100%}} more traffic in 90 days.
 
 I've been doing this for 20+ years. The pattern doesn't change.
 Unless you change the approach.
