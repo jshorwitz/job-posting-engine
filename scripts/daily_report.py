@@ -83,16 +83,32 @@ def get_campaign_stats(api_key: str, campaign_id: str) -> dict:
         return {"error": str(e)}
 
 
+def _bar(value: int, max_val: int, width: int = 20) -> str:
+    """Render a simple ASCII progress bar."""
+    if max_val <= 0:
+        return "[" + " " * width + "]"
+    filled = min(int(value / max_val * width), width)
+    return "[" + "█" * filled + "░" * (width - filled) + "]"
+
+
+def _status_icon(status: str) -> str:
+    icons = {"ACTIVE": "▶", "PAUSED": "⏸", "STOPPED": "■", "DRAFTED": "○", "COMPLETED": "✓"}
+    return icons.get(status, "?")
+
+
 def build_report(api_key: str) -> str:
-    """Build the daily report as plain text."""
-    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    """Build the daily report in ANSI/terminal style."""
+    now = datetime.now(timezone.utc)
+    date_str = now.strftime("%a %b %d, %Y")
+    time_str = now.strftime("%H:%M UTC")
+
     lines = [
-        f"Synter Growth Engine — Daily Report",
-        f"{now}",
+        "┌──────────────────────────────────────────────────┐",
+        "│          SYNTER GROWTH ENGINE                    │",
+        "│          Daily Operations Report                 │",
+        f"│          {date_str:>28}          │",
+        "└──────────────────────────────────────────────────┘",
         "",
-        "=" * 50,
-        "GEO CAMPAIGNS (Active Outbound)",
-        "=" * 50,
     ]
 
     total_leads = 0
@@ -100,62 +116,79 @@ def build_report(api_key: str) -> str:
     total_replied = 0
     total_bounced = 0
 
+    # Geo campaigns
+    lines.append("┌─ GEO CAMPAIGNS ─────────────────────────────────┐")
+
     for name, cid in GEO_CAMPAIGNS.items():
         stats = get_campaign_stats(api_key, cid)
         if "error" in stats:
-            lines.append(f"\n{name} ({cid}): ERROR - {stats['error']}")
+            lines.append(f"│  {name}: ERROR")
             continue
 
         leads = stats.get("total_leads", 0)
         sent = stats.get("sent", 0)
         replied = stats.get("replied", 0)
         bounced = stats.get("bounced", 0)
+        status = stats.get("status", "?")
+        reply_rate = stats.get("reply_rate", "0%")
 
-        total_leads += int(leads) if isinstance(leads, (int, str)) and str(leads).isdigit() else 0
+        leads_int = int(leads) if isinstance(leads, (int, str)) and str(leads).isdigit() else 0
+        total_leads += leads_int
         total_sent += sent
         total_replied += replied
         total_bounced += bounced
 
         lines.extend([
-            f"\n{name}",
-            f"  Status: {stats.get('status', '?')}",
-            f"  Leads: {leads}",
-            f"  Sent: {sent}  |  Replied: {replied}  |  Bounced: {bounced}",
-            f"  Reply rate: {stats.get('reply_rate', '0%')}",
+            "│",
+            f"│  {_status_icon(status)} {name}",
+            f"│    Leads: {leads_int:<6}  Sent: {sent:<6}  Replied: {replied:<4}  Bounced: {bounced}",
+            f"│    Reply rate: {reply_rate}  {_bar(replied, sent if sent > 0 else 1, 15)}",
         ])
 
     lines.extend([
+        "│",
+        "├──────────────────────────────────────────────────┤",
+        f"│  TOTAL: {total_leads} leads │ {total_sent} sent │ {total_replied} replied │ {total_bounced} bounced",
+        f"│  Reply rate: {(total_replied / total_sent * 100):.1f}%" if total_sent > 0 else "│  Reply rate: 0%",
+        "└──────────────────────────────────────────────────┘",
         "",
-        "-" * 50,
-        f"TOTALS: {total_leads} leads | {total_sent} sent | {total_replied} replied | {total_bounced} bounced",
-        f"Overall reply rate: {(total_replied / total_sent * 100):.1f}%" if total_sent > 0 else "Overall reply rate: 0%",
-        "",
-        "=" * 50,
-        "LEGACY CAMPAIGNS",
-        "=" * 50,
     ])
 
+    # Legacy campaigns
+    lines.append("┌─ LEGACY CAMPAIGNS ──────────────────────────────┐")
     for name, cid in LEGACY_CAMPAIGNS.items():
         stats = get_campaign_stats(api_key, cid)
         if "error" in stats:
             continue
-        lines.extend([
-            f"\n{name} ({cid})",
-            f"  Status: {stats.get('status', '?')} | Leads: {stats.get('total_leads', '?')} | Sent: {stats.get('sent', 0)} | Replied: {stats.get('replied', 0)} | Reply rate: {stats.get('reply_rate', '0%')}",
-        ])
+        status = stats.get("status", "?")
+        leads = stats.get("total_leads", "?")
+        sent = stats.get("sent", 0)
+        replied = stats.get("replied", 0)
+        rate = stats.get("reply_rate", "0%")
+        lines.append(f"│  {_status_icon(status)} {name:<30} {leads:>5} leads  {sent:>4} sent  {replied:>3} replied  {rate:>5}")
 
     lines.extend([
+        "└──────────────────────────────────────────────────┘",
         "",
-        "=" * 50,
-        "PIPELINE STATUS",
-        "=" * 50,
-        "Daily discovery: Mon-Fri 8am ET (Railway)",
-        "Signals: Job postings (38 countries) + Fundraising + Job changes + Tech stack",
-        "Enrichment: Hunter.io + SpyFu + BuiltWith + OpenAI",
-        "Sending: Smartlead (51 accounts, plain text, 3-email sequence)",
-        "CRM sync: Attio webhook (PR #1741)",
+    ])
+
+    # Pipeline status
+    lines.extend([
+        "┌─ PIPELINE ───────────────────────────────────────┐",
+        "│  Discovery:  Mon-Fri 8am ET  (38 countries)      │",
+        "│  Signals:    Hiring + Fundraising + Tech stack    │",
+        "│  Enrichment: Hunter + SpyFu + BuiltWith + OpenAI │",
+        "│  Sending:    Smartlead (51 accounts, plain text)  │",
+        "│  CRM:        Attio (webhook auto-sync)           │",
+        "│  Audiences:  Google Ads + Meta (758 emails)      │",
+        "└──────────────────────────────────────────────────┘",
         "",
-        "— Synter Growth Engine",
+        f"  Report generated {time_str}",
+        "",
+        "  ┌───┐",
+        "  │ ◉ │  Synter Growth Engine",
+        "  │ ▽ │  syntermedia.ai",
+        "  └───┘",
     ])
 
     return "\n".join(lines)
