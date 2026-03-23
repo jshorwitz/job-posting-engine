@@ -287,6 +287,19 @@ def run_job_discovery():
     except Exception as e:
         logger.error("geo pipeline failed: %s", e, exc_info=True)
 
+    # Also run signal-based discovery (fundraising, job changes, tech stack)
+    try:
+        logger.info("running signal-based discovery pipeline...")
+        signal_result = subprocess.run(
+            [sys.executable, "-m", "engine.signals.pipeline", "--limit", "30"],
+            capture_output=True, text=True, timeout=600,
+        )
+        logger.info("signal pipeline stdout: %s", signal_result.stdout[-500:] if signal_result.stdout else "(empty)")
+        if signal_result.returncode != 0:
+            logger.error("signal pipeline stderr: %s", signal_result.stderr[-500:] if signal_result.stderr else "(empty)")
+    except Exception as e:
+        logger.error("signal pipeline failed: %s", e, exc_info=True)
+
 
 def run_listicle_outreach():
     """Weekly listicle + podcast discovery → enrichment → outreach pipeline."""

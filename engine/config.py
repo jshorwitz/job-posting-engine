@@ -8,6 +8,7 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore",
     )
 
     # --- Sumble API (v3) ---
@@ -20,6 +21,9 @@ class Settings(BaseSettings):
 
     # --- Hunter.io (email enrichment) ---
     hunter_api_key: str = ""
+
+    # --- Apollo.io (contact enrichment + job change signals) ---
+    apollo_api_key: str = ""
 
     # --- Loops.so (email sending) ---
     loops_api_key: str = ""
@@ -117,6 +121,27 @@ class Settings(BaseSettings):
     serper_api_key: str = ""
     google_cse_api_key: str = ""
     google_cse_id: str = ""
+
+    # --- Synter MCP (SimilarWeb domain analysis) ---
+    synter_api_key: str = ""
+    synter_enrich_enabled: bool = True
+
+    # --- Smartlead.ai (cold email sending) ---
+    smartlead_api_key: str = ""
+    smartlead_campaign_id: str = ""
+    smartlead_listicle_campaign_id: str = ""  # separate campaign for listicle/podcast outreach
+
+    # --- EmailBison (isolated cold email sequencing) ---
+    emailbison_api_key: str = ""
+    emailbison_base_url: str = "https://dedi.emailbison.com"
+    emailbison_campaign_id: str = ""  # default campaign
+    emailbison_listicle_campaign_id: str = ""  # listicle/podcast outreach campaign
+
+    # --- RB2B.com (website visitor identification) ---
+    rb2b_api_key: str = ""
+    rb2b_webhook_secret: str = ""  # for verifying webhook signatures
+    rb2b_auto_enrich: bool = True  # auto-enrich + outreach on visitor detection
+    rb2b_poll_days: int = 7  # days of visitor history to fetch when polling
 
     # --- Database ---
     database_path: str = "data/outreach.db"
