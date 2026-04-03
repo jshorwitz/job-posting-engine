@@ -31,6 +31,8 @@ RUN pip install --no-cache-dir .
 
 RUN mkdir -p data logs && chown -R appuser:appuser /home/appuser/app
 
+EXPOSE 8787
+
 USER appuser
 
 # Default: enrichment pipeline (overridden per Railway service)

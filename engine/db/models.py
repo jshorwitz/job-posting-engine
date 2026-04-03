@@ -226,10 +226,10 @@ class PlatformScan(Base):
     scanned_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
-class RB2BVisitor(Base):
-    """Website visitors identified by RB2B.com for outbound campaigns."""
+class VectorVisitor(Base):
+    """Website visitors identified by Vector.co for LinkedIn outreach."""
 
-    __tablename__ = "rb2b_visitors"
+    __tablename__ = "vector_visitors"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     visitor_email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
@@ -237,11 +237,14 @@ class RB2BVisitor(Base):
     company_name: Mapped[str] = mapped_column(String(255), default="")
     company_domain: Mapped[str] = mapped_column(String(255), default="", index=True)
     job_title: Mapped[str] = mapped_column(String(255), default="")
+    seniority: Mapped[str] = mapped_column(String(100), default="")
     linkedin_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     last_page_url: Mapped[str] = mapped_column(String(1000), default="")
     visit_count: Mapped[int] = mapped_column(Integer, default=1)
+    icp_match: Mapped[bool] = mapped_column(Boolean, default=False)
     outreach_sent: Mapped[bool] = mapped_column(Boolean, default=False)
     enrichment_json: Mapped[str] = mapped_column(Text, default="{}")
+    source: Mapped[str] = mapped_column(String(50), default="vector_webhook")
     first_visited_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     last_visited_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 

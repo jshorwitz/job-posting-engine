@@ -137,11 +137,9 @@ class Settings(BaseSettings):
     emailbison_campaign_id: str = ""  # default campaign
     emailbison_listicle_campaign_id: str = ""  # listicle/podcast outreach campaign
 
-    # --- RB2B.com (website visitor identification) ---
-    rb2b_api_key: str = ""
-    rb2b_webhook_secret: str = ""  # for verifying webhook signatures
-    rb2b_auto_enrich: bool = True  # auto-enrich + outreach on visitor detection
-    rb2b_poll_days: int = 7  # days of visitor history to fetch when polling
+    # --- Vector.co (website visitor de-anonymization) ---
+    vector_webhook_secret: str = ""  # HMAC-SHA256 for verifying webhook signatures
+    vector_auto_enrich: bool = True  # auto-enrich + outreach on visitor detection
 
     # --- Database ---
     database_path: str = "data/outreach.db"

@@ -397,6 +397,34 @@ def run_listicle_followups():
         logger.error("listicle followups failed: %s", e, exc_info=True)
 
 
+VECTOR_WEBHOOK_ENABLED = os.environ.get("VECTOR_WEBHOOK_ENABLED", "true").lower() != "false"
+VECTOR_WEBHOOK_PORT = int(os.environ.get("PORT", "8787"))
+
+
+def _start_vector_webhook_thread():
+    """Start the Vector.co webhook server on a background daemon thread."""
+    if not VECTOR_WEBHOOK_ENABLED:
+        logger.info("Vector webhook server disabled")
+        return
+
+    import threading
+
+    def _run():
+        try:
+            from engine.vector_pipeline import _start_webhook_server
+            from engine.config import Settings
+
+            settings = Settings()
+            logger.info("Vector webhook server starting on port %d...", VECTOR_WEBHOOK_PORT)
+            _start_webhook_server(settings)
+        except Exception as e:
+            logger.error("Vector webhook server failed: %s", e, exc_info=True)
+
+    t = threading.Thread(target=_run, daemon=True, name="vector-webhook")
+    t.start()
+    logger.info("Vector webhook thread started (port %d)", VECTOR_WEBHOOK_PORT)
+
+
 def main():
     import argparse
 
@@ -432,6 +460,9 @@ def main():
         run_synter_campaign()
         return
 
+    # Start Vector webhook server in background thread
+    _start_vector_webhook_thread()
+
     # Long-lived scheduler loop
     running = True
 
@@ -455,6 +486,7 @@ def main():
     logger.info("  job discovery: Mon-Fri at %d:00 ET (%s)", JOB_DISCOVERY_HOUR_ET, "enabled" if JOB_DISCOVERY_ENABLED else "disabled")
     logger.info("  listicle/podcast outreach: Tuesdays at 10:00 ET (%s)", "enabled" if LISTICLE_OUTREACH_ENABLED else "disabled")
     logger.info("  follow-up emails: Mon-Fri at 11:00 ET (%s)", "enabled" if FOLLOWUP_ENABLED else "disabled")
+    logger.info("  Vector webhook server: port %d (%s)", VECTOR_WEBHOOK_PORT, "enabled" if VECTOR_WEBHOOK_ENABLED else "disabled")
 
     last_post_slot: str | None = None
     last_scan_time: float = 0  # scan immediately on startup
