@@ -31,6 +31,7 @@ logger = logging.getLogger("x_scheduler")
 from engine.x.time_utils import (
     EASTERN_TZ,
     ENRICHMENT_HOUR_ET,
+    FOUNDER_REPLY_HOURS_PT,
     JOB_DISCOVERY_HOUR_ET,
     LINKEDIN_POST_HOUR_PT,
     PACIFIC_TZ,
@@ -39,6 +40,7 @@ from engine.x.time_utils import (
     date_str,
     ensure_timezone,
     should_enrich_now,
+    should_founder_reply_now,
     should_job_discovery_now,
     should_linkedin_post_now,
     should_followup_now,
@@ -225,6 +227,28 @@ def run_mcp_replies():
         logger.error("MCP reply scan failed: %s", e, exc_info=True)
 
 
+FOUNDER_REPLY_ENABLED = os.environ.get("FOUNDER_REPLY_ENABLED", "true").lower() != "false"
+FOUNDER_REPLY_MAX = int(os.environ.get("FOUNDER_REPLY_MAX_PER_RUN", "5"))
+
+
+def run_founder_replies():
+    """Scan for high-engagement tweets and reply as @JSHorwitz."""
+    try:
+        from engine.x.founder_reply_engine import run_scan_and_reply
+
+        result = run_scan_and_reply(max_replies=FOUNDER_REPLY_MAX)
+        sent = [r for r in result.get("replies", []) if r.get("status") == "sent"]
+        logger.info(
+            "founder reply engine: %d candidates, %d replies sent",
+            result.get("candidates_found", 0), len(sent),
+        )
+        for r in sent:
+            logger.info("  replied to %s: %s", r.get("author"), r.get("reply_url"))
+
+    except Exception as e:
+        logger.error("founder reply engine failed: %s", e, exc_info=True)
+
+
 def run_enrichment():
     """Run the enrichment + Loops export pipeline."""
     try:
@@ -377,7 +401,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="X Growth Engine Scheduler")
-    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "listicle", "followups", "job-discovery", "synter-campaign"], help="Run once and exit")
+    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "founder-replies", "listicle", "followups", "job-discovery", "synter-campaign"], help="Run once and exit")
     args = parser.parse_args()
 
     if args.once == "post":
@@ -391,6 +415,9 @@ def main():
         return
     if args.once == "mcp-replies":
         run_mcp_replies()
+        return
+    if args.once == "founder-replies":
+        run_founder_replies()
         return
     if args.once == "listicle":
         run_listicle_outreach()
@@ -423,6 +450,7 @@ def main():
     logger.info("  MCP reply scan: every %d hours (%s)", MCP_REPLY_INTERVAL_HOURS, "enabled" if MCP_REPLY_ENABLED else "disabled")
     logger.info("  LinkedIn native posting: %s", "enabled" if LINKEDIN_NATIVE_ENABLED else "disabled")
     logger.info("  Synter campaign (LI+X): Tuesdays at %d:00 PT (%s)", SYNTER_CAMPAIGN_HOUR_PT, "enabled" if SYNTER_CAMPAIGN_ENABLED else "disabled")
+    logger.info("  founder replies: Mon-Fri at %s PT, %d/run (%s)", FOUNDER_REPLY_HOURS_PT, FOUNDER_REPLY_MAX, "enabled" if FOUNDER_REPLY_ENABLED else "disabled")
     logger.info("  enrichment pipeline: Mon-Fri at %d:00 ET", ENRICHMENT_HOUR_ET)
     logger.info("  job discovery: Mon-Fri at %d:00 ET (%s)", JOB_DISCOVERY_HOUR_ET, "enabled" if JOB_DISCOVERY_ENABLED else "disabled")
     logger.info("  listicle/podcast outreach: Tuesdays at 10:00 ET (%s)", "enabled" if LISTICLE_OUTREACH_ENABLED else "disabled")
@@ -438,6 +466,7 @@ def main():
     last_followup_date: str | None = None
     last_report_date: str | None = None
     last_campaign_date: str | None = None
+    last_founder_reply_slot: str | None = None
 
     while running:
         try:
@@ -466,6 +495,12 @@ def main():
                 logger.info("scanning for Claude+Facebook Ads+MCP tweets...")
                 run_mcp_replies()
                 last_mcp_reply_time = time.time()
+
+            if FOUNDER_REPLY_ENABLED and should_founder_reply_now(last_founder_reply_slot):
+                now_pt = ensure_timezone(None, PACIFIC_TZ)
+                logger.info("founder reply engine (%s PT)...", now_pt.strftime("%H:%M"))
+                run_founder_replies()
+                last_founder_reply_slot = slot_key(now_pt, PACIFIC_TZ)
 
             if should_enrich_now(last_enrich_date):
                 logger.info("running enrichment pipeline...")

@@ -7,6 +7,8 @@ from zoneinfo import ZoneInfo
 PACIFIC_TZ = ZoneInfo("America/Los_Angeles")
 EASTERN_TZ = ZoneInfo("America/New_York")
 X_POST_HOURS_PT = (9, 12, 15, 18)
+FOUNDER_REPLY_HOURS_PT = (10, 14, 17)  # 10am, 2pm, 5pm PT — between posting slots
+FOUNDER_REPLY_DAYS = {0, 1, 2, 3, 4}  # Mon-Fri
 LINKEDIN_POST_HOUR_PT = 9
 LINKEDIN_POST_DAYS = {1, 2, 3, 5}  # Tue, Wed, Thu, Sat
 SYNTER_CAMPAIGN_HOUR_PT = 9
@@ -103,6 +105,16 @@ def should_followup_now(last_followup_date: str | None, now: datetime | None = N
         current.hour == FOLLOWUP_HOUR_ET
         and current.weekday() in FOLLOWUP_DAYS
         and date_str(current, EASTERN_TZ) != last_followup_date
+    )
+
+
+def should_founder_reply_now(last_reply_slot: str | None, now: datetime | None = None) -> bool:
+    """Founder reply engine — Mon-Fri at 10am, 2pm, 5pm PT."""
+    current = ensure_timezone(now, PACIFIC_TZ)
+    return (
+        current.hour in FOUNDER_REPLY_HOURS_PT
+        and current.weekday() in FOUNDER_REPLY_DAYS
+        and slot_key(current, PACIFIC_TZ) != last_reply_slot
     )
 
 
