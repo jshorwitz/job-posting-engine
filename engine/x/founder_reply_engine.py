@@ -65,6 +65,11 @@ TARGET_ACCOUNTS = [
     "stevenjpope",        # Steven Pope — Amazon ads
 ]
 
+# Prospect accounts — companies from our lead pipeline.
+# We follow + engage with their tweets to warm up before email outreach.
+# Loaded dynamically from data/lead-x-accounts-*.json at scan time.
+PROSPECT_ACCOUNTS_FILE = Path("data/lead-x-accounts-2026-04-03.json")
+
 # Also search these topic queries for high-engagement tweets
 TOPIC_QUERIES = [
     "paid media strategy -is:retweet -is:reply",
@@ -235,15 +240,31 @@ def search_tweets(bearer_token: str, query: str, limit: int = 20) -> list:
     return results
 
 
+def _load_prospect_accounts() -> list[str]:
+    """Load prospect X handles from the lead pipeline JSON."""
+    if PROSPECT_ACCOUNTS_FILE.exists():
+        try:
+            with open(PROSPECT_ACCOUNTS_FILE) as f:
+                data = json.load(f)
+            return [a["x_username"] for a in data if a.get("x_username")]
+        except Exception:
+            pass
+    return []
+
+
 def fetch_target_account_tweets(bearer_token: str) -> list:
-    """Fetch recent tweets from target accounts."""
+    """Fetch recent tweets from target + prospect accounts."""
     import httpx
 
     headers = {"Authorization": f"Bearer {bearer_token}"}
     all_tweets = []
 
-    # Deduplicate target accounts
-    unique_accounts = list(dict.fromkeys(a.lower() for a in TARGET_ACCOUNTS))
+    # Combine thought leader targets + prospect company accounts
+    prospect_handles = _load_prospect_accounts()
+    combined = list(TARGET_ACCOUNTS) + prospect_handles
+    unique_accounts = list(dict.fromkeys(a.lower() for a in combined))
+    logger.info("scanning %d accounts (%d targets + %d prospects)",
+                len(unique_accounts), len(TARGET_ACCOUNTS), len(prospect_handles))
 
     for username in unique_accounts:
         try:
