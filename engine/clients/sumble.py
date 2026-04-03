@@ -1,13 +1,15 @@
-"""Sumble.com v3 API client — Jobs + People endpoints.
+"""Sumble.com v5 API client — Jobs + People endpoints.
 
 API docs: https://docs.sumble.com/api
-Base URL: https://api.sumble.com/v3
+Base URL: https://api.sumble.com/v5
 Auth:     Bearer token in Authorization header
 Rate:     10 requests/second
 
 Credit costs:
-  - Jobs find:   3 credits per job returned
-  - People find: 1 credit per person returned
+  - Jobs find:           2 credits per job (3 with descriptions)
+  - Jobs related people: 1 credit per person returned
+  - People find:         1 credit per person returned
+  - Org find:            5 credits per result
 """
 
 from __future__ import annotations
@@ -141,6 +143,50 @@ class SumbleClient:
         return matched_jobs
 
     # ------------------------------------------------------------------
+    # Job-Related People (v5)
+    # ------------------------------------------------------------------
+
+    def find_related_people(
+        self,
+        job_id: int,
+        limit: int = 5,
+    ) -> list[dict[str, Any]]:
+        """Find hiring managers and team members related to a job listing.
+
+        Uses the v5 /jobs/find-related-people endpoint which returns people
+        most relevant to the role — typically the hiring manager or team lead.
+        1 credit per person returned.
+
+        Args:
+            job_id: Sumble job ID (from find_jobs results)
+            limit:  Max people to return (default 5)
+
+        Returns:
+            List of person dicts with keys: id, name, job_title, job_function,
+            job_level, linkedin_url, location, country, start_date
+        """
+        payload: dict[str, Any] = {
+            "job_id": job_id,
+            "limit": limit,
+        }
+
+        with httpx.Client(timeout=30.0) as client:
+            resp = self._post(client, "/jobs/find-related-people", payload)
+            if resp is None:
+                return []
+
+            people = resp.get("people", [])
+            credits = resp.get("credits_remaining", "?")
+
+            if people:
+                logger.info(
+                    "Sumble: found %d related people for job %d "
+                    "(credits remaining: %s)",
+                    len(people), job_id, credits,
+                )
+            return people
+
+    # ------------------------------------------------------------------
     # People
     # ------------------------------------------------------------------
 
@@ -148,21 +194,51 @@ class SumbleClient:
         self,
         organization_domain: str | None = None,
         organization_id: int | None = None,
+        job_id: int | None = None,
     ) -> dict[str, Any] | None:
         """Find the best outreach contact at a company.
 
-        Searches for marketing leadership first (VP Marketing, CMO,
-        Director of Growth — the hiring manager), then falls back to
-        CEO/founder if no marketing leader is found.
+        Strategy (in order):
+          1. If job_id provided, use find_related_people (v5) to get the
+             hiring manager directly — most accurate, 1 credit/person.
+          2. Search for marketing leadership (VP Marketing, CMO, Director
+             of Growth) via people/find.
+          3. Fall back to CEO/founder if no marketing leader found.
 
         Args:
             organization_domain: Company domain (e.g. "stripe.com")
             organization_id:     Sumble organization ID
+            job_id:              Sumble job ID (enables related-people lookup)
 
         Returns:
             Person dict with keys: id, name, job_title, job_function,
             job_level, linkedin_url, url — or None if not found.
         """
+        # Try job-related people first (hiring manager = best contact)
+        if job_id is not None:
+            related = self.find_related_people(job_id, limit=5)
+            if related:
+                # Prefer marketing/growth leaders among related people
+                for person in related:
+                    title = (person.get("job_title") or "").lower()
+                    if any(kw in title for kw in [
+                        "vp", "director", "head of", "cmo", "chief marketing",
+                        "marketing", "growth", "demand",
+                    ]):
+                        logger.info(
+                            "Found hiring manager via related-people: %s (%s) @ %s",
+                            person.get("name"), person.get("job_title"),
+                            organization_domain,
+                        )
+                        return person
+                # Fall back to first related person
+                first = related[0]
+                logger.info(
+                    "Using top related person: %s (%s) @ %s",
+                    first.get("name"), first.get("job_title"),
+                    organization_domain,
+                )
+                return first
         org: dict[str, Any]
         if organization_id is not None:
             org = {"id": organization_id}

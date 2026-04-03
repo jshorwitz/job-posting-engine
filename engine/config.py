@@ -13,7 +13,7 @@ class Settings(BaseSettings):
 
     # --- Sumble API (v3) ---
     sumble_api_key: str = ""
-    sumble_base_url: str = "https://api.sumble.com/v3"
+    sumble_base_url: str = "https://api.sumble.com/v5"
 
     # --- OpenAI ---
     openai_api_key: str = ""
