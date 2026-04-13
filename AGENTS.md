@@ -1,3 +1,46 @@
+## Project Ecosystem
+
+> **Status: Prototype / Superseded**
+> Emre is building a replacement outbound service using **RevenueBase** (contact discovery) and **EmailBison** (email sequencing). That service will be exposed to the synter-media AI agent via MCP. Do not invest in deep integrations or new features for this Python engine — maintain only, or migrate logic to Emre's service when ready.
+
+This is the **jobs-outreach-engine** — a companion outbound service for Synter. It is intentionally a sibling to synter-media, not part of it.
+
+| Project | Relationship | Rules of engagement |
+|---------|-------------|---------------------|
+| `synter-media` | Parent platform. Shares Doppler config (`synter-media/prd`). This engine generates leads that become Synter customers. | Never read/write synter-media's Postgres DB. Coordinate on Doppler secret naming to avoid collisions. When the outreach engine needs a new agent tool exposed, add it to synter-media's agent route. |
+| `mcp-server` | The public API for synter-media. Not related to this engine directly. | No direct dependency. |
+| All others | Unrelated. | No cross-project dependencies. |
+
+**This engine's SQLite DB is standalone. Do not attempt to merge it into synter-media's Prisma schema without explicit instruction.**
+
+---
+
+## CRITICAL: Workspace & Account Verification — HIGH RISK PROJECT
+
+**This engine sends real emails, LinkedIn messages, and tweets to real people. A misconfigured run can spam hundreds of contacts and cannot be undone.**
+
+### Required checks before every run
+
+| Check | Expected value | Action if wrong |
+|-------|---------------|-----------------|
+| Working directory | `/Users/joelhorwitz/work/jobs-outreach-engine/` | STOP — ask user to confirm |
+| Doppler project | `synter-media`, config `prd` — intentional for this engine | Warn user if credentials missing |
+| Email target | Real leads from Sumble/CSV — NOT Synter team members or test accounts | Verify before sending |
+| Twitter account | `@JSHorwitz` personal account only | Never post as @synter or any brand account |
+| GitHub | `jobs-outreach-engine` repo only | Do NOT push to synter-media |
+
+### Mandatory safety rules
+
+- **ALWAYS use `--dry-run` by default.** Never remove `--dry-run` unless the user explicitly says "send for real" or "go live".
+- **Always show a preview** of what would be sent (lead count, email subject, recipient sample) and ask for confirmation before a live run.
+- **Never import or send to Synter employees, investors, or team contacts.**
+- **Rate limits**: Max 20 leads/run due to SpyFu limits. Confirm count before running.
+- **LinkedIn automation**: Playwright-based — only run when user is present to handle CAPTCHAs.
+- **Email send times**: Resend sender auto-schedules emails for business hours (8am-6pm PT, Mon-Fri). If triggered outside that window, emails queue for 9:15am PT next business day. NEVER bypass this guardrail.
+- **X API credits**: Pay-per-usage. Check credit balance before bulk pulls (followers, liking_users, retweeted_by). ~$25-50 covers 13K follower pulls + enrichment.
+
+---
+
 # Job Posting Growth Engine — AI Agent Guide
 
 ## Project Overview
@@ -252,10 +295,44 @@ Both need a `/data` volume mount for persistent state files (posted log, scan ca
 | `.x_engaged_log.json` | Tweets already engaged with (dedup) |
 | `.x_quote_targets.json` | Monitored accounts for quote retweeting |
 
+### Influencer / Amplifier Outreach
+
+Scripts in `scripts/` for analyzing competitor followers and enriching engagers:
+
+| Script | Purpose |
+|--------|---------|
+| `fetch_tweet_engagers.py` | Pull liking/retweeting users from a single tweet |
+| `fetch_all_tweet_engagers.py` | Pull engagers from all high-engagement tweets of a user |
+| `reenrich_engagers.py` | Re-run Apollo enrichment on previously pulled engagers |
+
+**Outreach drafts** live in `data/amplifier_outreach_drafts.md`. Enriched contact data in `data/tweet_engagers_enriched.csv`.
+
+**Apollo.io enrichment** (API key in Doppler as `APOLLO_API_KEY`): Use `POST https://api.apollo.io/api/v1/people/match` with `first_name`, `last_name`, `domain` in JSON body. Pass `reveal_personal_emails: true` for email results. Credits are consumed per lookup.
+
+### X Algorithm Reference (from open-sourced twitter/the-algorithm)
+
+Key ranking signals for content calendar optimization:
+
+| Signal | Weight |
+|--------|--------|
+| Reply-to-reply chains | 75x a like |
+| Reposts | 20x a like |
+| Quote tweets | 15x a like |
+| Replies | 13.5-27x a like |
+| Profile clicks | 12x a like |
+| Bookmarks | 10x a like |
+
+- **First 30 minutes** determine a post's reach. Visibility decays 50% every 6hrs.
+- **External links** carry a 50-90% reach penalty. Post links in replies, not the main tweet.
+- **API-posted tweets are NOT penalized** vs native app tweets (confirmed in source code).
+- **Content calendar** (`engine/x/content_calendar.json`) supports threads via `"thread": [...]` array.
+- All posts must be <=280 chars. The scheduler validates this before posting.
+
 ### Known Blockers
 
 - **DM outreach:** X Developer App needs "Direct Message" permission + token regeneration
 - **Follower scanning:** X App needs to be attached to a "Project" in the Developer Portal
+- **Liking users endpoint:** Returns 0 results on Basic tier. Only `retweeted_by` works for engager pulls. Need Pro tier ($5K/mo) or use the bearer token with sufficient credits.
 
 ## Common Issues
 
