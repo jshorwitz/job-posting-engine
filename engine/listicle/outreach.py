@@ -237,7 +237,14 @@ def _send_email(settings: Settings, to_email: str, to_name: str, subject: str, b
 
 
 def _send_via_resend(settings: Settings, to_email: str, subject: str, body: str) -> bool:
-    """Send an email via Resend API (fallback if EmailBison not configured)."""
+    """Send an email via Resend API (fallback if EmailBison not configured).
+
+    Emails sent outside business hours (8am-6pm PT, Mon-Fri) are automatically
+    scheduled for the next business morning at 9:15am PT.
+    """
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
     # Convert plain text to simple HTML
     html_body = body.replace("\n", "<br>")
 
@@ -248,6 +255,20 @@ def _send_via_resend(settings: Settings, to_email: str, subject: str, body: str)
         "html": html_body,
         "reply_to": settings.resend_from_email,
     }
+
+    # Schedule for business hours if sending outside 8am-6pm PT Mon-Fri
+    pt = ZoneInfo("America/Los_Angeles")
+    now_pt = datetime.now(pt)
+    hour, weekday = now_pt.hour, now_pt.weekday()
+    if hour < 8 or hour >= 18 or weekday >= 5:
+        # Find next business day at 9:15am PT
+        next_send = now_pt.replace(hour=9, minute=15, second=0, microsecond=0)
+        if hour >= 8:
+            next_send += timedelta(days=1)
+        while next_send.weekday() >= 5:
+            next_send += timedelta(days=1)
+        payload["scheduled_at"] = next_send.isoformat()
+        logger.info(f"Resend: outside business hours, scheduling for {next_send.strftime('%a %b %d %I:%M%p PT')}")
 
     try:
         with httpx.Client(timeout=15.0) as client:
