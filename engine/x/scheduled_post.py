@@ -71,10 +71,31 @@ def get_oauth_session():
     )
 
 
-def post_tweet(oauth, text: str) -> dict:
-    resp = oauth.post("https://api.x.com/2/tweets", json={"text": text})
+def post_tweet(oauth, text: str, reply_to: str = None) -> dict:
+    body = {"text": text}
+    if reply_to:
+        body["reply"] = {"in_reply_to_tweet_id": reply_to}
+    resp = oauth.post("https://api.x.com/2/tweets", json=body)
     resp.raise_for_status()
     return resp.json()
+
+
+def post_thread(oauth, texts: list[str]) -> list[dict]:
+    """Post a thread: first tweet standalone, each subsequent tweet replies to the previous."""
+    posted = []
+    reply_to = None
+    for text in texts:
+        result = post_tweet(oauth, text, reply_to=reply_to)
+        tweet_data = result.get("data", {})
+        tweet_id = tweet_data.get("id", "")
+        posted.append({
+            "tweet_id": tweet_id,
+            "text": text,
+            "url": f"https://x.com/JSHorwitz/status/{tweet_id}" if tweet_id else "",
+        })
+        if tweet_id:
+            reply_to = tweet_id
+    return posted
 
 
 def _get_week_keys(calendar: dict) -> list:
@@ -190,8 +211,14 @@ def main():
     if args.dry_run:
         for post_id, post in posts_to_send:
             print(f"[DRY RUN] {post_id}: {post.get('day')} {post.get('time')} ({post.get('type')})")
-            print(f"  {post.get('text')}")
-            print(f"  chars: {len(post.get('text', ''))}")
+            thread_texts = post.get("thread")
+            if thread_texts:
+                print(f"  thread ({len(thread_texts)} tweets):")
+                for i, t in enumerate(thread_texts):
+                    print(f"    [{i+1}] ({len(t)} chars) {t}")
+            else:
+                print(f"  {post.get('text')}")
+                print(f"  chars: {len(post.get('text', ''))}")
             print()
         return
 
@@ -199,26 +226,50 @@ def main():
     results = []
 
     for post_id, post in posts_to_send:
-        text = post.get("text", "")
-        if len(text) > 280:
-            results.append({"post_id": post_id, "status": "skipped", "error": f"Exceeds 280 chars ({len(text)})"})
-            continue
+        thread_texts = post.get("thread")
 
-        try:
-            result = post_tweet(oauth, text)
-            tid = result.get("data", {}).get("id", "")
-            posted.add(post_id)
-            save_posted_log(posted)
-            results.append({
-                "post_id": post_id,
-                "status": "sent",
-                "tweet_id": tid,
-                "url": f"https://x.com/JSHorwitz/status/{tid}",
-                "day": post.get("day"),
-                "type": post.get("type"),
-            })
-        except Exception as e:
-            results.append({"post_id": post_id, "status": "failed", "error": str(e)})
+        if thread_texts:
+            # Validate all thread texts are ≤280 chars
+            invalid = [(i, len(t)) for i, t in enumerate(thread_texts) if len(t) > 280]
+            if invalid:
+                parts = ", ".join(f"tweet {i+1}: {c} chars" for i, c in invalid)
+                results.append({"post_id": post_id, "status": "skipped", "error": f"Thread tweets exceed 280 chars ({parts})"})
+                continue
+
+            try:
+                thread_results = post_thread(oauth, thread_texts)
+                posted.add(post_id)
+                save_posted_log(posted)
+                results.append({
+                    "post_id": post_id,
+                    "status": "sent",
+                    "type": post.get("type"),
+                    "day": post.get("day"),
+                    "thread": thread_results,
+                })
+            except Exception as e:
+                results.append({"post_id": post_id, "status": "failed", "error": str(e)})
+        else:
+            text = post.get("text", "")
+            if len(text) > 280:
+                results.append({"post_id": post_id, "status": "skipped", "error": f"Exceeds 280 chars ({len(text)})"})
+                continue
+
+            try:
+                result = post_tweet(oauth, text)
+                tid = result.get("data", {}).get("id", "")
+                posted.add(post_id)
+                save_posted_log(posted)
+                results.append({
+                    "post_id": post_id,
+                    "status": "sent",
+                    "tweet_id": tid,
+                    "url": f"https://x.com/JSHorwitz/status/{tid}",
+                    "day": post.get("day"),
+                    "type": post.get("type"),
+                })
+            except Exception as e:
+                results.append({"post_id": post_id, "status": "failed", "error": str(e)})
 
     print(json.dumps({"success": True, "results": results}, indent=2))
 

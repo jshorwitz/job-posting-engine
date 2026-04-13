@@ -1,276 +1,217 @@
 {
   "account": "JSHorwitz",
   "style_guide": {
-    "voice": "lowercase casual, no periods at end of posts, storytelling structure (hook → tension → insight → takeaway), specific numbers and data, asks questions to drive replies, no emojis, no em dashes, founder voice with 20+ years paid media experience, pro-agency, demand-focused, 200-400 chars minimum per post",
-    "avoid": "corporate speak, AI-powered, emojis, em dashes, one-liners under 150 chars, listicle-style bullet dumps, product feature lists, engagement bait",
-    "positioning": "synter helps agencies and media buyers drive real demand by handling execution so they can focus on growth strategy. joel has 20+ years in paid media and built synter because he lived the problem"
+    "voice": "lowercase casual, no periods at end of posts, no emojis, no em dashes, metrics-forward with specific numbers, questions to drive replies, founder voice with 20+ years paid media experience, pro-agency, algorithm-optimized for reply engagement and dwell time",
+    "avoid": "corporate speak, AI-powered, emojis, em dashes, engagement bait, external links in posts, vague value props without numbers, listicle-style bullet dumps, one-liners",
+    "positioning": "synter is competitive intelligence for marketing agencies. ad spend data, keyword gaps, tech stack analysis, competitor overlap, ad creative history. agencies use it to win pitches and prep for client calls. joel has 20+ years in paid media and built synter because he lived the problem"
   },
   "week_1": [
     {
       "day": "monday",
       "time": "09:00",
-      "type": "hot_take",
-      "text": "unpopular opinion: the reason most paid media hires fail in 90 days isn't the person\n\nit's that the company expected one human to manage google, meta, linkedin, analytics, landing pages, tracking, reporting, and strategy\n\nthat's not a job description, that's a burnout prescription\n\ni've watched this play out dozens of times over 20 years. the hire isn't bad. the expectations are impossible"
-    },
-    {
-      "day": "monday",
-      "time": "12:00",
-      "type": "data_insight",
-      "text": "we analyzed our own google ads account last week and found something wild\n\ndesktop converts at 2.4x better CPA than mobile on search\n\nbut mobile was eating 61% of spend because we left device bids on auto\n\none GAQL query, one bid modifier change, instant 18% CPA improvement\n\nhow many accounts are bleeding money on mobile right now because nobody ran the query"
+      "type": "build_in_public",
+      "text": "synter month 7: 2,847 domains analyzed, 14 agencies running weekly, 3 agencies won pitches using our data in their proposals\n\nwhat metric matters most to you when evaluating a new tool"
     },
     {
       "day": "monday",
       "time": "15:00",
-      "type": "behind_the_scenes",
-      "text": "broke our reddit ads integration three times this week\n\nturns out reddit's oauth endpoint silently drops your refresh_token when PKCE code_challenge is present. no error, no warning. your connection just dies after 60 minutes\n\ntook 3 days to diagnose, 4 lines to fix\n\nbuilding ad platform integrations is 20% feature work and 80% reading undocumented API behavior in discord threads from 2023"
-    },
-    {
-      "day": "monday",
-      "time": "18:00",
-      "type": "competitive_intel",
-      "text": "pulled similarweb on 5 competitors in our space last month\n\nevery single one had less than 1% of traffic from paid search. wide open channel\n\nbut here's what was interesting: 3 of them were getting 1600+ visits/mo from chatgpt and perplexity\n\nwe were getting zero\n\nLLM visibility is the new SEO and almost nobody is tracking it yet. if AI agents recommend your competitor and not you, you lose before the click even happens"
+      "type": "data_insight",
+      "text": "68% of companies spending $20k+/mo on google ads haven't changed their ad copy in 6 months\n\nagencies that spot this win accounts. what's the laziest competitor behavior you've seen"
     },
     {
       "day": "tuesday",
       "time": "09:00",
-      "type": "hot_take",
-      "text": "every ad platform is shipping AI campaign creation this year\n\nnone of them will manage the other platform's campaigns\n\ngoogle's AI won't optimize your meta spend. meta's AI won't touch your linkedin budget. and no platform has any incentive to tell you to shift budget away from them\n\ncross-platform is the moat nobody's building because every platform wants to be the only platform\n\nthat's the gap"
+      "type": "build_in_public",
+      "text": "shipped keyword gap analysis. one agency found 1,340 keywords their prospect's competitors rank for that the prospect doesn't\n\nthey won a $22k/mo engagement\n\nwhat's your go-to pitch move",
+      "thread": [
+        "shipped keyword gap analysis last week. here's what happened\n\nday 1: 3 agencies tried it\nday 3: 11 agencies ran it on prospect domains\nday 7: one agency ran 47 domains in a single afternoon prepping for a pitch sprint",
+        "that agency found 1,340 keywords their prospect's competitors rank for that the prospect doesn't\n\nthey put it in the proposal. won a $22k/mo engagement\n\nwe didn't plan for someone running 47 domains in one session. had to bump our rate limits",
+        "the feature took us 2 weeks to build. the pitch it helped win pays more per month than our entire MRR\n\nwhat data would change your pitch process if you had it in 30 seconds"
+      ]
     },
     {
       "day": "tuesday",
       "time": "12:00",
-      "type": "data_insight",
-      "text": "the search term audit we ran yesterday found $340/week in wasted spend\n\nsomeone was searching \"googleads doubleclick net\" and clicking our ad. another was searching \"free google ads course\"\n\nboth had 50+ clicks over the past month\n\nnobody checks search terms weekly because it takes 20 minutes per campaign across platforms. but the math is simple: $340/week × 52 weeks = $17,680/year in garbage clicks\n\nwhat's your search term hygiene actually look like"
-    },
-    {
-      "day": "tuesday",
-      "time": "15:00",
-      "type": "behind_the_scenes",
-      "text": "shipped the campaign IDE this week and learned something about how media buyers actually want to work\n\nthey don't want a chat interface that does magic behind a curtain. they want to see the campaign structure, edit it inline, approve each step\n\nthe chat-first AI hype got this wrong. experienced media buyers want control with speed, not autopilot\n\nso we built a hybrid: conversational creation, visual editing, one-click launch. the IDE metaphor from software engineering actually maps perfectly to campaign management"
-    },
-    {
-      "day": "tuesday",
-      "time": "18:00",
       "type": "question",
-      "text": "genuine question for agency media buyers\n\nwhat percentage of your week is actually spent on strategy vs execution\n\ni keep hearing 20/80 (20% strategy, 80% execution) and every single person says it should be the opposite\n\nif that's true for you, what's the one execution task you'd eliminate first"
+      "text": "how long does your competitive research take before a prospect meeting\n\nwe timed it: the old way with 4 tools takes 2-4 hours per prospect\n\nsynter: 30 seconds for the same data\n\ndoes 2-4 hours match your experience or am i underestimating"
+    },
+    {
+      "day": "tuesday",
+      "time": "15:00",
+      "type": "behind_the_scenes",
+      "text": "broke our spyfu integration 4 times this week\n\nthe API returns monthly ad spend as a float with 14 decimal places. our db column was integer. every domain over $99,999.50/mo silently rounded down\n\n3 days to find. 1 line to fix"
     },
     {
       "day": "wednesday",
       "time": "09:00",
-      "type": "hot_take",
-      "text": "the worst advice in B2B marketing right now is \"just run linkedin ads\"\n\nnobody tells you linkedin's minimum viable test is $3k/mo because CPMs are $80-120. nobody mentions that lead gen forms have a 40% fake-email rate. nobody warns you that the audience targeting UI has 47 clicks before you can launch\n\nlinkedin ads work incredibly well for the right ICP at the right budget. but the \"just run linkedin\" crowd is setting people up to waste their first $5k and conclude the platform doesn't work"
+      "type": "data_insight",
+      "text": "pulled ad creative history on 500 domains this month\n\ntop performing ads (running 200+ days) almost always lead with a specific number + outcome + timeframe\n\nads that died in under 30 days were all vague. \"transform your business\" type stuff\n\nspecificity wins"
     },
     {
       "day": "wednesday",
       "time": "12:00",
-      "type": "data_insight",
-      "text": "here's a cross-platform signal most people miss because they never see all their data in one place\n\nwhen linkedin CPL drops 22% and google CPA rises 15% on the same audience segment in the same week\n\nthat's not random noise. that's your audience shifting channels. the correct move is to reallocate budget toward linkedin for that segment immediately\n\nbut if you're logging into each platform separately and comparing in a spreadsheet on friday, you're 5 days late\n\nreal-time cross-platform visibility isn't a nice-to-have. it's the difference between reactive and proactive"
+      "type": "build_in_public",
+      "text": "synter just hit 100 competitor reports generated in a single day\n\nback in october it was 3-4 per day. december was 12. february was 40\n\nagencies don't want a research tool. they want pitch ammo for the meeting they have in 4 hours",
+      "thread": [
+        "synter just hit 100 competitor reports generated in a single day\n\nback in october it was 3-4 per day. december was 12. february was 40. last tuesday was 100",
+        "the growth curve matched exactly when agencies started using synter for pitch prep vs curiosity browsing\n\npitch prep is the use case. not \"competitive intelligence\" not \"market research\"\n\nagencies need ammo for the meeting they have tomorrow afternoon",
+        "that specificity in positioning took us 5 months to figure out\n\nwhat's a positioning shift that changed everything for your product"
+      ]
     },
     {
       "day": "wednesday",
       "time": "15:00",
-      "type": "behind_the_scenes",
-      "text": "we just got our MCP server working with claude, cursor, and amp simultaneously\n\nwhat this means in practice: a developer can ask claude to pull google ads performance, pause underperforming campaigns, reallocate budget to meta, and generate fresh creative — all from one terminal session\n\nthe MCP distribution insight that keeps me up at night: when someone asks an AI agent to \"create a google ads campaign,\" the agent routes to whichever MCP server can execute it. the user never sees alternatives\n\nfirst-mover in MCP = default tool for every AI agent. that's not a feature, it's a distribution channel"
-    },
-    {
-      "day": "wednesday",
-      "time": "18:00",
       "type": "question",
-      "text": "what's the most expensive mistake you've made in paid media that wasn't a strategy mistake\n\ni'm talking wrong geo targeting, forgotten campaign pause over a weekend, budget set to daily instead of lifetime\n\nmine was $2k on a test campaign i forgot to pause before a holiday weekend. classic\n\nthese execution errors cost more than bad strategy and nobody tracks them"
+      "text": "what data would make you 10x more confident walking into a new business pitch\n\nour agencies said: competitor ad spend by month. knowing a competitor spends $34k/mo on google but $0 on meta tells you exactly where the opportunity is\n\nwhat's yours"
     },
     {
       "day": "thursday",
       "time": "09:00",
-      "type": "hot_take",
-      "text": "hot take after 20 years in paid media: the agencies that win in 2026 won't be the ones with the most people\n\nthey'll be the ones whose people spend the most time on strategy\n\ni've seen 3-person agencies outperform 30-person agencies because the small team had zero execution overhead. every hour went to thinking, testing, iterating\n\nthe big agency had 25 people in dashboards and 5 people thinking. the math doesn't work no matter how many people you hire"
+      "type": "build_in_public",
+      "text": "honest synter revenue update\n\nmonth 1: $0\nmonth 3: $147 (3 users)\nmonth 5: $637 (13 users)\nmonth 7: $1,372 (28 users)\n\n100% of churn is freelancers. zero agency churn\n\nbuild for the segment that gets undeniable value, not the biggest market",
+      "thread": [
+        "honest synter revenue update\n\nmonth 1: $0 (building)\nmonth 3: $147 (3 early users at $49)\nmonth 5: $637 (13 users, some on annual)\nmonth 7: $1,372 (28 users, 14 agencies)",
+        "not exactly rocketship growth. but 100% of our churn has been freelancers who couldn't justify $49/mo\n\nzero agency churn\n\nagencies that start using synter for pitch prep don't stop. the LTV on agencies is looking really strong",
+        "the lesson: build for the segment that gets undeniable value, not the biggest possible market\n\nwhat's a segment insight that changed your business"
+      ]
     },
     {
       "day": "thursday",
       "time": "12:00",
       "type": "data_insight",
-      "text": "the landing page data keeps proving the same thing\n\nhomepage as landing page: 75% bounce rate, $47 CPA\ndedicated LP matched to keyword: 35% bounce rate, $19 CPA\n\nthat's a 2.5x CPA improvement from one change\n\nbut most teams don't build dedicated LPs because it requires a designer, a developer, tracking pixel setup, and 2 weeks of back-and-forth\n\nwe got this down to 90 seconds: describe the page → generate → auto-inject all tracking pixels → host instantly\n\nthe bottleneck was never the ad. it was always the page the ad points to"
+      "text": "we indexed 14,000 google ads across 2,847 domains\n\naverage ad lifespan: 67 days\ntop 10% longest-running ads: 200+ days\nbottom 10%: dead in under 14 days\n\nthe 200+ day ads all lead with a number. the sub-14-day ads are all generic\n\nwhat's your longest-running ad"
     },
     {
       "day": "thursday",
       "time": "15:00",
-      "type": "competitive_intel",
-      "text": "ran a competitive analysis on 12 AI ad tools this week\n\n9 of them position as \"AI-powered optimization\" — meaning they read your data and suggest changes you still have to make manually\n\n2 of them can create campaigns on one platform\n\nnone of them handle the full loop across multiple platforms: research → create → launch → track → optimize → report\n\nthe market is flooded with copilots. nobody's building the execution layer\n\nthat's why we're building synter as an agent, not an assistant"
-    },
-    {
-      "day": "thursday",
-      "time": "18:00",
       "type": "question",
-      "text": "if adding a new ad platform to your mix added zero workload — no new dashboard, no new learning curve, no new reporting format\n\nwhich platform would you test first\n\nmost people say tiktok or reddit. cheapest CPMs, untapped B2B audiences, but \"we don't have bandwidth for another dashboard\"\n\nthat's not a strategy problem. that's a tooling problem"
+      "text": "question for agencies managing 10+ clients\n\nhow often do you actually check what your clients' competitors are doing with their ads\n\nfrom what i've seen: thorough analysis at onboarding, then maybe quarterly\n\nis quarterly enough when competitors move monthly"
     },
     {
       "day": "friday",
       "time": "09:00",
-      "type": "behind_the_scenes",
-      "text": "friday build update from synter\n\nthis week we shipped:\n→ imagen 4 creative generation directly in campaign creation flow\n→ negative keyword audit that runs across all campaigns in one command\n→ CRM audience sync from attio/hubspot to 10 ad platforms simultaneously\n→ device bid adjustments based on conversion data pulled via GAQL\n\nthe creative gen one is my favorite. describe what you want, get 4 variations, pick one, it's attached to your campaign. no canva, no designer queue, no waiting\n\nwe used to spend 3 hours per client on creative production. now it's 3 minutes"
-    },
-    {
-      "day": "friday",
-      "time": "12:00",
-      "type": "hot_take",
-      "text": "the pricing model for ad tools is broken and nobody wants to say it\n\nmost tools charge percentage of ad spend. so a tool that saves you $10k/month in wasted spend is incentivized to... not save you that money\n\nwe charge $49/month flat. same price whether you manage $5k or $500k in ad spend\n\naligned incentives matter. if your tool makes more money when you spend more, ask yourself who it's really optimized for"
+      "type": "metrics_update",
+      "text": "week 31 at synter\n\n4,200 API calls (up 34% WoW)\nnew: ad creative history\nnew: weekly competitor monitoring with diffs\nfixed: spend rounding bug on 312 domains\n\n23 agencies tracking 156 domains weekly. 0 to PMF signal in 5 days\n\nwhat feature surprised you with adoption speed"
     },
     {
       "day": "friday",
       "time": "15:00",
-      "type": "data_insight",
-      "text": "the CRM retargeting play most agencies skip because it's too much manual work:\n\n→ sync closed-lost deals to google customer match\n→ run search ads on competitor keywords to just that list\n→ they already know you, now they see you everywhere they search\n\nconversion rates on this audience are 3-5x higher than cold search\n\nbut nobody does it because syncing CRM lists to ad platforms means CSV exports, email hashing, manual uploads, and refreshing weekly\n\nwe automated the entire thing into one command. that's the kind of problem worth solving"
-    },
-    {
-      "day": "friday",
-      "time": "18:00",
       "type": "behind_the_scenes",
-      "text": "end of week reflection: we're 6 months into building synter and the hardest part isn't the AI or the ad platform APIs\n\nit's the 10,000 edge cases\n\ngoogle ads requires exact match on currency codes. meta silently rejects creatives over 125 chars in primary text on certain placements. linkedin's API returns different facet URNs depending on which endpoint you call\n\nevery integration is 20% building the feature and 80% handling the exceptions nobody documented\n\nbut every edge case we handle is one less thing a media buyer has to debug at 11pm"
+      "text": "hardest engineering problem in synter isn't data collection. it's deduplication\n\nsame company shows up under 4 domain variations. tried fuzzy matching, too many false positives\n\nbuilt a company graph using DNS + tech stack fingerprinting. caught 847 dupes in run one"
     },
     {
       "day": "saturday",
       "time": "12:00",
-      "type": "hot_take",
-      "text": "building cross-platform budget allocation on a saturday because the math is genuinely harder than the engineering\n\nhow do you compare a $12 linkedin CPL against a $3 google CPC against a $0.80 reddit CPM when each platform measures success differently\n\nthe answer is unified conversion tracking + attribution modeling + a lot of normalization\n\nbut when it works? rebalance $50k across 5 platforms in one sentence\n\nthat's worth a saturday"
+      "type": "metrics_update",
+      "text": "synter usage by day of week\n\nmon: 142 reports (pitch prep day)\ntue: 98\nwed: 87\nthu: 64\nfri: 41\n\nagencies front-load competitive research on monday. by friday they're in delivery mode\n\nwe moved our weekly digest to monday 7am. usage jumped 23%\n\nwhen do you do your deepest research"
     },
     {
       "day": "sunday",
       "time": "12:00",
       "type": "question",
-      "text": "sunday question for the paid media folks\n\nwhat's the one thing you wish your tools did that none of them do\n\nfor me it was always: show me all my campaigns across all platforms in one view and let me act on them without switching tabs\n\nseems obvious. nobody built it. so we are"
+      "text": "agencies don't want a research tool. they want pitch ammo\n\nthe ones using synter daily aren't doing \"competitive analysis.\" they're prepping for a meeting in 4 hours and need one slide showing they did their homework\n\nwhat tool do you reach for when you need answers fast"
     }
   ],
   "week_2": [
     {
       "day": "monday",
       "time": "09:00",
-      "type": "hot_take",
-      "text": "the listicle SEO play is the most underrated distribution channel in B2B and it costs zero ad spend\n\ngoogle \"best AI ad tools\" — there are 47 articles ranking for buying-intent keywords. your competitor is in most of them. you're in none\n\neach article sends traffic for years. each reader is actively evaluating tools\n\nwe got 3 placements in 2 weeks by emailing editors. total cost: $0. total time: 4 hours\n\nmeanwhile everyone's spending $15/click on the same keywords these articles rank for organically"
-    },
-    {
-      "day": "monday",
-      "time": "12:00",
-      "type": "data_insight",
-      "text": "we tracked conversion paths across platforms for 30 days and found something counterintuitive\n\nthe leads that converted fastest weren't the ones who clicked a google ad first. they were the ones who saw a linkedin ad, then searched our brand name on google, then converted\n\nlinkedin created awareness. google captured intent. attribution gave google 100% of the credit\n\nif you're making budget decisions based on last-click attribution in 2026, you're probably cutting the channel that's actually driving your pipeline\n\ncross-platform visibility isn't optional anymore"
+      "type": "build_in_public",
+      "text": "synter month 8: 3,412 domains, 31 users, $1,519 MRR\n\n6 new signups came from agencies who saw a colleague's competitor diff and asked \"what tool is that\"\n\nword of mouth from a useful feature > any marketing campaign\n\nwhat's your best growth channel right now"
     },
     {
       "day": "monday",
       "time": "15:00",
-      "type": "behind_the_scenes",
-      "text": "honest update: we rebuilt our campaign creation flow from scratch this week\n\nthe old flow was too linear — you had to go through 8 steps in order. felt like filling out a form\n\nnew flow lets you start anywhere. say \"launch a search campaign for marketing automation keywords\" and the agent fills in everything it can infer, shows you what it assumed, lets you override anything\n\nthe insight: AI campaign creation shouldn't feel like a wizard. it should feel like briefing a smart junior media buyer who already knows your account"
-    },
-    {
-      "day": "monday",
-      "time": "18:00",
-      "type": "competitive_intel",
-      "text": "interesting pattern from analyzing 50 SaaS companies' ad strategies this month\n\ncompanies spending $50k+/mo on google ads almost always have one thing in common: dedicated landing pages per keyword cluster\n\ncompanies spending under $10k almost always send traffic to their homepage\n\nit's not that big spenders can afford better pages. it's that better pages made them confident enough to spend more\n\nthe LP is the unlock, not the budget"
+      "type": "data_insight",
+      "text": "pitch win rate for agencies using synter vs not (6 agencies, ~80 pitches over 3 months)\n\nwith synter data: 38% close rate\nwithout: 22%\n\nsmall sample but consistent across all 6. walking in with competitor spend data changes the dynamic from selling to diagnosing"
     },
     {
       "day": "tuesday",
       "time": "09:00",
-      "type": "hot_take",
-      "text": "controversial: most \"AI ad tools\" are just GPT wrappers that generate ad copy and call it a day\n\ngenerating headlines is maybe 2% of the work of running paid media\n\nthe other 98% is: keyword research, audience building, bid strategy, tracking setup, GTM configuration, conversion actions, negative keywords, device optimization, geo targeting, budget allocation, reporting, and actually pushing buttons in the platform\n\nif your AI tool can write a headline but can't launch a campaign, it's a copywriter, not a media buyer"
+      "type": "build_in_public",
+      "text": "shipped PDF export this week. the feature 9 agencies asked for over 3 months\n\nday 1: 4 exports\nday 2: 11\nday 3: 34\nday 4: an agency asked \"can we white-label it with our logo\"\n\nbest product roadmap comes from the request you get 24 hours after launch",
+      "thread": [
+        "shipped PDF export this week. the feature 9 agencies asked for over 3 months\n\nday 1: 4 exports\nday 2: 11\nday 3: 34\nday 4: an agency asked \"can we white-label it with our logo\"",
+        "we hadn't considered white-labeling. but it makes perfect sense\n\nthe agency doesn't want to credit synter in their pitch deck. they want it to look like their proprietary research\n\nshipping white-label this week",
+        "sometimes the best product roadmap comes from the request you get 24 hours after launch\n\nwhat feature request surprised you most from your users"
+      ]
     },
     {
       "day": "tuesday",
       "time": "12:00",
-      "type": "data_insight",
-      "text": "the competitor conquesting data is fascinating\n\nwe added exact match keywords for 4 competitor names: gomarble, ryze, albert, graphed\n\nCPA on competitor keywords: $8.40\nCPA on generic keywords: $34.20\n\n4x better conversion rate because someone searching \"[competitor name] alternative\" already knows they need what you sell\n\nbut most companies don't run competitor campaigns because \"it feels aggressive\"\n\nyour competitors are bidding on your name right now. check your auction insights"
+      "type": "question",
+      "text": "real question for agency owners\n\nhow much do you spend per month on competitive research tools across your team\n\ni've heard everything from $0 (\"we just google it\") to $3,200/mo (semrush + similarweb + builtwith + spyfu)\n\nwhat does your stack look like"
     },
     {
       "day": "tuesday",
       "time": "15:00",
-      "type": "behind_the_scenes",
-      "text": "the $49/month pricing decision was the scariest one we've made\n\nevery advisor said charge percentage of ad spend. \"that's how the industry works.\" \"you're leaving money on the table.\"\n\nbut percentage-of-spend pricing creates a perverse incentive: your tool makes more money when the client spends more, not when the client gets better results\n\nflat pricing means we win when you win. we're incentivized to help you spend less on garbage and more on what converts\n\n6 months in, no regrets. the trust it builds is worth more than the revenue we left behind"
-    },
-    {
-      "day": "tuesday",
-      "time": "18:00",
-      "type": "question",
-      "text": "real talk: how many ad platforms does your team actually manage well vs how many do you have accounts on\n\nmost agencies I talk to have 5-6 platform accounts but really only optimize 2-3 consistently\n\nthe others get set-and-forget treatment. campaigns running on auto-bid with no search term audits for months\n\nis that a team problem or a tooling problem"
+      "type": "data_insight",
+      "text": "just crossed 1,500 keyword gap analyses in synter\n\naverage gap: 340 keywords\nbiggest: 4,200 keywords (B2B SaaS doing 100% outbound, zero SEO)\nsmallest: 12 keywords (niche vertical, 3 competitors)\n\nthe 4,200 gap report landed a $15k/mo retainer\n\nwhat's the biggest gap you've found"
     },
     {
       "day": "wednesday",
       "time": "09:00",
-      "type": "hot_take",
-      "text": "the conversion tracking crisis nobody talks about\n\nwe audited 15 google ads accounts last month. 11 of them had broken or misconfigured conversion tracking\n\nmissing GTM tags. unpublished containers. CAPI not connected. conversion windows set to 1 day instead of 30\n\nthese aren't small accounts. these are companies spending $20k+/month on ads with no idea which clicks actually convert\n\nconversion tracking setup is 90% of campaign success. the other 10% is everything else combined\n\nwhen we set up campaigns, tracking configuration is automatic. not optional, not a separate step, not something you can forget"
+      "type": "build_in_public",
+      "text": "the feature that almost killed our API budget\n\nlaunched bulk domain analysis. one agency uploaded 200 domains day one. our spyfu bill for that single day: $47. monthly budget was $200\n\nbuilt smart caching overnight. API costs dropped 64%\n\nwhat's the most expensive lesson you learned shipping fast",
+      "thread": [
+        "the feature that almost killed our API budget\n\nlaunched bulk domain analysis: upload 50 prospect domains, get competitive intel on all of them\n\none agency uploaded 200 domains on day one. our spyfu API bill for that single day: $47\n\nour monthly API budget was $200",
+        "had to implement smart caching immediately. repeat analyses within 7 days hit cache. API costs dropped 64%\n\ncurrent unit economics: $0.12 per domain analysis after caching. at $49/user/mo we need users analyzing fewer than 408 domains/mo to stay profitable",
+        "average user analyzes 31 domains/mo. we're fine. but that one agency with 200 domains taught us to plan for power users\n\nwhat's the most expensive lesson you learned from shipping fast"
+      ]
     },
     {
       "day": "wednesday",
       "time": "12:00",
-      "type": "data_insight",
-      "text": "ran an experiment: same offer, same audience definition, same budget, same creative concept across google, meta, linkedin, reddit, and tiktok\n\nresults after 14 days:\n→ reddit: $4.20 CPL (lowest cost, highest intent)\n→ google: $11.50 CPL (reliable, predictable)\n→ meta: $8.30 CPL (best creative performance)\n→ tiktok: $6.10 CPL (surprise performer for B2B)\n→ linkedin: $38.00 CPL (highest quality leads)\n\nif you're only on google and meta, you're leaving the cheapest leads on the table\n\nbut I get it — who has time for 5 dashboards"
+      "type": "behind_the_scenes",
+      "text": "debugging at 2am because our monitoring cron ran but sent zero alerts\n\nthe bug: timestamps stored in UTC, compared against pacific time. every domain looked checked \"3 hours ago\"\n\n156 domains affected. 6 lines to fix. shipped at 2:47am\n\ntimezone bugs are undefeated"
     },
     {
       "day": "wednesday",
       "time": "15:00",
-      "type": "behind_the_scenes",
-      "text": "we made a mistake this month that taught us something important\n\nwe auto-enabled a campaign for a user without explicit approval. the campaign was configured correctly, budget was right, targeting was right\n\nbut the user wanted to review first. trust violated\n\nnew rule at synter: every campaign launches in PAUSED state. always. the human reviews, the human enables\n\nAI agents should be fast, not presumptuous. the media buyer makes the final call, period\n\nwe shipped the fix the same day"
-    },
-    {
-      "day": "wednesday",
-      "time": "18:00",
       "type": "question",
-      "text": "for the agency owners: what would you do with 15 extra hours per week per media buyer\n\nhire fewer people? take on more clients? spend more time on creative strategy?\n\ncurious because the answer reveals whether the bottleneck is headcount or leverage"
+      "text": "for agencies that do competitive research before pitches\n\ndo you research the prospect's competitors, or the prospect themselves\n\nthe agencies winning more pitches research the competitors. \"here's what your top 3 are doing that you're not\"\n\nwhich approach do you take"
     },
     {
       "day": "thursday",
       "time": "09:00",
-      "type": "hot_take",
-      "text": "prediction: within 18 months, the primary way businesses buy ad tech won't be through google searches or G2 reviews\n\nit'll be through AI agent recommendations\n\nwhen a marketing director asks claude \"set up our Q3 paid media campaigns,\" the agent will route to whichever execution tool it trusts. the user never compares alternatives\n\nthis is why we're investing so heavily in our MCP server. being the best landing page matters less when the AI picks the tool\n\nthe new SEO is AI agent compatibility"
+      "type": "build_in_public",
+      "text": "4 agencies started using synter for client retention, not just new business\n\nworkflow: run competitors monthly, send client a \"landscape update\" showing what changed\n\none agency cut churn from 20% to 8% in a quarter\n\nwe never marketed this use case. they invented it"
     },
     {
       "day": "thursday",
       "time": "12:00",
       "type": "data_insight",
-      "text": "the negative keyword data is staggering\n\nwe pulled search terms across all our campaigns for the past 30 days\n\n23% of clicks came from irrelevant search terms. twenty-three percent\n\n\"free ad tools\" \"google ads certification\" \"how to get a job in marketing\"\n\nthese clicks cost real money. on a $10k/month account, that's $2,300/month in waste\n\nautomatic negative keyword audits should run weekly. nobody does it because it takes 20 minutes per campaign\n\nwe run it in one command across every campaign simultaneously. it pays for itself in the first hour"
+      "text": "ad spend across 3,412 domains reveals a seasonal pattern most agencies miss\n\nq1: 78% increase spend\nq2: plateaus\nq3: 34% cut by 20%+\nq4: 62% spike for EOY\n\nagencies timing outreach to q3 frustration close 2x more deals\n\nhow do you time your new biz outreach"
     },
     {
       "day": "thursday",
       "time": "15:00",
       "type": "behind_the_scenes",
-      "text": "the creative generation breakthrough we had this week\n\nwe connected imagen 4 directly into the campaign creation flow. so when the agent builds your campaign, it also generates the creative — matched to the platform specs, the audience, the offer\n\nbut here's what surprised us: the AI-generated creative performed within 8% of professional designer creative on meta\n\nnot because AI design is better. because speed beats perfection. you can test 10 AI creative variations in the time it takes to brief a designer on one\n\nthe winning strategy isn't AI OR human creative. it's AI for velocity, human for your hero campaigns"
-    },
-    {
-      "day": "thursday",
-      "time": "18:00",
-      "type": "question",
-      "text": "what's the most underrated ad platform for B2B right now\n\nI'll go first: reddit\n\n$4-8 CPMs, highly engaged audiences, subreddit targeting is basically intent-based, and almost no competition because \"reddit ads are weird\"\n\nthe brands willing to figure out reddit's quirks are getting absurd ROI while everyone fights over linkedin's $80+ CPMs"
+      "text": "the pricing debate i keep having with founders\n\n\"$49/mo is too cheap for agencies. charge more\"\n\nbut $49 means no procurement, no approval needed. media buyer puts it on their card, using it in 4 minutes\n\nbottom-up at $49 > top-down sales at $500\n\nwhat's your pricing hot take"
     },
     {
       "day": "friday",
       "time": "09:00",
-      "type": "behind_the_scenes",
-      "text": "weekly build update\n\nthis week at synter:\n→ campaign IDE now supports inline editing of ad copy before launch\n→ added tiktok events API for server-side conversion tracking\n→ microsoft ads offline conversions integration\n→ fixed a bug where linkedin facet URNs changed between targeting and reporting endpoints (undocumented, naturally)\n\nthe linkedin bug was my favorite. their API returns different identifiers for the same audience depending on which endpoint you call. took 2 days to figure out, had to read their java SDK source code to confirm\n\nnobody said ad platform APIs would be fun"
-    },
-    {
-      "day": "friday",
-      "time": "12:00",
-      "type": "hot_take",
-      "text": "the agencies charging 15-20% of ad spend for management are going to have a very rough 2027\n\nnot because AI replaces them. because AI makes it obvious how much of that fee was execution, not strategy\n\nwhen campaign creation takes 90 seconds instead of 4 hours, when reporting is one query instead of a half-day, when tracking setup is automatic instead of a billable deliverable\n\nthe value shifts entirely to strategy. and strategy should be priced on outcomes, not on a percentage of spend\n\nthe best agencies are already making this shift. the rest are pretending it's not coming"
+      "type": "metrics_update",
+      "text": "week 35 at synter\n\n3,412 domains in the db\n34 PDF exports (week 1 of the feature)\n6 white-label requests\n1 timezone bug that took out monitoring for 12 hours\n\nPDF export is already our #2 feature. agencies need deliverables not dashboards\n\nwhat's your #1 most-used feature"
     },
     {
       "day": "friday",
       "time": "15:00",
-      "type": "data_insight",
-      "text": "something I've noticed after 20 years: the companies that succeed with paid media aren't the ones with the biggest budgets\n\nthey're the ones with the fastest iteration cycles\n\ntest a landing page monday. read the data tuesday. adjust wednesday. scale thursday\n\nvs: brief the agency monday. review mockup thursday. get the page built next week. launch in 2 weeks. read data in 3 weeks\n\nthe first company runs 12 tests in the time the second runs 1\n\nspeed of iteration is the only durable advantage in paid media"
-    },
-    {
-      "day": "friday",
-      "time": "18:00",
-      "type": "question",
-      "text": "heading into the weekend with a question\n\nwhat's one thing about paid media you wish someone had told you 5 years ago\n\nmine: the creative matters 10x more than the targeting. I spent years optimizing audiences when the headline was the real lever all along"
+      "type": "build_in_public",
+      "text": "end of month: what worked and what didn't\n\nworked: weekly monitoring, PDF export, $49 pricing\ndidn't: cold outbound (2% reply, 0 conversions), linkedin ads ($38 CPL, 0 signups), product hunt (1 user)\n\nbest channel: agencies telling other agencies\n\nwhat's your worst marketing bet"
     },
     {
       "day": "saturday",
       "time": "12:00",
-      "type": "behind_the_scenes",
-      "text": "saturday morning thought while debugging our budget allocation algorithm\n\nthe hardest problem in cross-platform advertising isn't technical. it's philosophical\n\nhow do you compare a linkedin impression to a google click to a reddit engagement when each platform defines success differently\n\nyou can't just normalize to CPA because the customer journey is multi-touch. you can't just look at last-click because that ignores awareness. you can't just look at impressions because that ignores intent\n\nwe're building something that weights each platform's contribution based on where it sits in the funnel. still early, but the results are promising\n\nif anyone's solved this elegantly I want to hear about it"
+      "type": "metrics_update",
+      "text": "synter first 8 months by the numbers\n\n3,412 domains analyzed\n1,500+ keyword gap analyses\n14,000+ ads indexed\n31 paying users, $1,519 MRR\nzero agency churn\n\nfreelancers churn. agencies don't. that tells you everything about who the product is really for"
     },
     {
       "day": "sunday",
       "time": "12:00",
-      "type": "hot_take",
-      "text": "the future of agencies isn't fewer people doing more work\n\nit's the same people doing fundamentally different work\n\nexecution handled by agents. strategy, relationships, and creative vision handled by humans\n\nthat's not a threat to the industry. it's the upgrade the industry has needed for a decade\n\nthe agencies that embrace this will attract better talent, retain them longer, and deliver better results\n\nthe ones that fight it will wonder why their best people keep leaving for in-house roles"
+      "type": "build_in_public",
+      "text": "thing nobody tells you about data products: your users find use cases you never imagined\n\nwe built synter for pitch prep. agencies use it for retention, upsells, and benchmarking too\n\n4 use cases from a tool positioned for 1\n\nwhat has your user taught you about your product"
     }
   ]
 }
