@@ -399,6 +399,26 @@ def run_listicle_followups():
 
 VECTOR_WEBHOOK_ENABLED = os.environ.get("VECTOR_WEBHOOK_ENABLED", "true").lower() != "false"
 VECTOR_WEBHOOK_PORT = int(os.environ.get("PORT", "8787"))
+VECTOR_OUTREACH_INTERVAL_HOURS = int(os.environ.get("VECTOR_OUTREACH_INTERVAL_HOURS", "1"))
+
+
+def run_vector_outreach():
+    """Process pending Vector visitors → Smartlead email."""
+    try:
+        from engine.config import Settings
+        from engine.db.database import get_session
+        from engine.vector_pipeline import run_vector_pipeline
+
+        settings = Settings()
+        session = get_session(settings)
+        stats = run_vector_pipeline(settings, session)
+        logger.info(
+            "vector outreach: processed=%d sent=%d skipped=%d failed=%d",
+            stats["processed"], stats["sent"], stats["skipped"], stats["failed"],
+        )
+        session.close()
+    except Exception as e:
+        logger.error("vector outreach failed: %s", e, exc_info=True)
 
 
 def _start_vector_webhook_thread():
@@ -429,7 +449,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="X Growth Engine Scheduler")
-    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "founder-replies", "listicle", "followups", "job-discovery", "synter-campaign"], help="Run once and exit")
+    parser.add_argument("--once", choices=["post", "scan", "linkedin", "mcp-replies", "founder-replies", "listicle", "followups", "job-discovery", "synter-campaign", "vector"], help="Run once and exit")
     args = parser.parse_args()
 
     if args.once == "post":
@@ -458,6 +478,9 @@ def main():
         return
     if args.once == "synter-campaign":
         run_synter_campaign()
+        return
+    if args.once == "vector":
+        run_vector_outreach()
         return
 
     # Start Vector webhook server in background thread
@@ -491,6 +514,7 @@ def main():
     last_post_slot: str | None = None
     last_scan_time: float = 0  # scan immediately on startup
     last_mcp_reply_time: float = 0  # scan immediately on startup
+    last_vector_time: float = 0  # process immediately on startup
     last_li_date: str | None = None
     last_enrich_date: str | None = None
     last_job_date: str | None = None
@@ -553,6 +577,11 @@ def main():
                 logger.info("running daily follow-up check...")
                 run_listicle_followups()
                 last_followup_date = date_str(None, EASTERN_TZ)
+
+            if time.time() - last_vector_time >= VECTOR_OUTREACH_INTERVAL_HOURS * 3600:
+                logger.info("processing pending Vector visitors...")
+                run_vector_outreach()
+                last_vector_time = time.time()
 
             if should_daily_report_now(last_report_date):
                 logger.info("sending daily growth engine report...")
