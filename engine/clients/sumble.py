@@ -50,6 +50,7 @@ class SumbleClient:
         countries: list[str] | None = None,
         limit: int = 50,
         since: str | None = None,
+        location_keywords: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         """Search for job postings using technology filters + title matching.
 
@@ -64,6 +65,9 @@ class SumbleClient:
             job_title, datetime_pulled, primary_job_function, location,
             teams, description, url, matched_technologies
         """
+        # Normalise location keywords for client-side filtering
+        _location_kws = [kw.lower() for kw in location_keywords] if location_keywords else []
+
         # Build title keywords for client-side matching.
         # Include broad marketing/growth leadership terms so we capture
         # hiring managers, not just exact query matches.
@@ -119,12 +123,15 @@ class SumbleClient:
                 if not jobs:
                     break
 
-                # If title keywords provided, filter client-side;
-                # otherwise accept all technology-matched jobs
+                # Client-side filtering: title keywords + optional location
                 for job in jobs:
                     if title_keywords:
                         title = (job.get("job_title") or "").lower()
                         if not any(kw in title for kw in title_keywords):
+                            continue
+                    if _location_kws:
+                        loc = (job.get("location") or "").lower()
+                        if not any(kw in loc for kw in _location_kws):
                             continue
                     matched_jobs.append(job)
                     if len(matched_jobs) >= limit:

@@ -25,6 +25,12 @@ from sqlalchemy.orm import Session
 from engine.config import Settings
 from engine.db.models import DripState, DripStatus
 from engine.drip.sequence import DRIP_SEQUENCE, render_template
+from engine.drip.sequence_smb import SMB_DRIP_SEQUENCE
+
+CAMPAIGN_SEQUENCES: dict[str, list] = {
+    "growth_hire": DRIP_SEQUENCE,
+    "smb_local": SMB_DRIP_SEQUENCE,
+}
 
 logger = logging.getLogger(__name__)
 
@@ -35,27 +41,33 @@ def enroll_contact(
     first_name: str,
     company: str,
     enrichment_data: dict,
+    campaign: str = "growth_hire",
 ) -> DripState | None:
     """Enroll a contact in the drip sequence.
+
+    Args:
+        campaign: Which sequence to use — "growth_hire" (default, tech/startup)
+                  or "smb_local" (real estate, HVAC, and other SMB verticals).
 
     If already enrolled, returns None (no-op).
     """
     existing = session.query(DripState).filter(DripState.email == email).first()
     if existing:
-        logger.debug(f"Drip: {email} already enrolled (step {existing.current_step})")
+        logger.debug(f"Drip: {email} already enrolled (step {existing.current_step}, campaign={existing.campaign})")
         return None
 
     state = DripState(
         email=email,
         first_name=first_name,
         company=company,
+        campaign=campaign,
         current_step=0,
         status=DripStatus.ACTIVE,
         enrichment_json=json.dumps(enrichment_data, default=str),
     )
     session.add(state)
     session.flush()
-    logger.info(f"Drip: enrolled {email} ({company})")
+    logger.info(f"Drip: enrolled {email} ({company}) → campaign={campaign}")
     return state
 
 
@@ -65,8 +77,13 @@ def run_drip(
     *,
     dry_run: bool = False,
     limit: int = 50,
+    campaign: str | None = None,
 ) -> dict[str, int]:
     """Process all active drip contacts and send due emails.
+
+    Args:
+        campaign: If set, only process contacts in this campaign
+                  ("growth_hire" or "smb_local"). If None, processes all.
 
     Returns stats dict with sent/skipped/completed/failed counts.
     """
@@ -75,27 +92,28 @@ def run_drip(
     stats = {"checked": 0, "sent": 0, "skipped": 0, "completed": 0, "failed": 0}
     now = datetime.now(timezone.utc)
 
-    active = (
-        session.query(DripState)
-        .filter(DripState.status == DripStatus.ACTIVE)
-        .limit(limit)
-        .all()
-    )
+    query = session.query(DripState).filter(DripState.status == DripStatus.ACTIVE)
+    if campaign:
+        query = query.filter(DripState.campaign == campaign)
+    active = query.limit(limit).all()
 
     logger.info(f"Drip: {len(active)} active contacts to check")
 
     for state in active:
         stats["checked"] += 1
-        next_step_idx = state.current_step  # 0-indexed into DRIP_SEQUENCE
+        next_step_idx = state.current_step  # 0-indexed into sequence
 
-        if next_step_idx >= len(DRIP_SEQUENCE):
+        # Select the correct sequence based on the contact's campaign
+        sequence = CAMPAIGN_SEQUENCES.get(state.campaign or "growth_hire", DRIP_SEQUENCE)
+
+        if next_step_idx >= len(sequence):
             # All 18 emails sent
             state.status = DripStatus.COMPLETED
             state.completed_at = now
             stats["completed"] += 1
             continue
 
-        step = DRIP_SEQUENCE[next_step_idx]
+        step = sequence[next_step_idx]
         delay_days = step["delay_days"]
 
         # Check if enough time has elapsed
@@ -139,7 +157,7 @@ def run_drip(
             state.current_step = next_step_idx + 1
             state.last_sent_at = now
             stats["sent"] += 1
-            if state.current_step >= len(DRIP_SEQUENCE):
+            if state.current_step >= len(sequence):
                 state.status = DripStatus.COMPLETED
                 state.completed_at = now
                 stats["completed"] += 1
@@ -162,7 +180,7 @@ def run_drip(
             )
 
             # Check if sequence is complete
-            if state.current_step >= len(DRIP_SEQUENCE):
+            if state.current_step >= len(sequence):
                 state.status = DripStatus.COMPLETED
                 state.completed_at = now
                 stats["completed"] += 1

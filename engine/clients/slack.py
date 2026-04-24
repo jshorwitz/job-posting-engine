@@ -17,7 +17,7 @@ def post_run_summary(
     sample_companies: list[str] | None = None,
 ) -> None:
     """Post a summary message to Slack. No-ops if webhook_url is empty."""
-    if not webhook_url:
+    if not webhook_url or not webhook_url.startswith("https://"):
         return
 
     companies_line = ""

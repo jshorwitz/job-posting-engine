@@ -82,6 +82,7 @@ class Settings(BaseSettings):
     job_technologies: str = "google-ads,facebook-ads,performance-marketing"
     job_countries: str = "US"
     job_since_days: int = 30
+    job_location_filter: str = ""  # e.g. "Portland" — Adzuna where= filter
     log_level: str = "INFO"
 
     # --- X (Twitter) Growth Engine ---

@@ -193,6 +193,11 @@ class DripState(Base):
     first_name: Mapped[str] = mapped_column(String(100), default="")
     company: Mapped[str] = mapped_column(String(255), default="")
 
+    # Campaign identifies which drip sequence to use:
+    #   "growth_hire" — tech/startup companies hiring growth/performance roles (default)
+    #   "smb_local"   — SMB/local businesses (real estate, HVAC, etc.) hiring first marketer
+    campaign: Mapped[str] = mapped_column(String(50), default="growth_hire")
+
     # Position in the 18-step sequence (0 = not started, 1 = email 1 sent, etc.)
     current_step: Mapped[int] = mapped_column(Integer, default=0)
     status: Mapped[DripStatus] = mapped_column(

@@ -62,8 +62,13 @@ def generate_outreach_email(
     company_name: str,
     job_title_hiring: str,
     company_domain: str | None = None,
+    sender_context: str | None = None,
 ) -> tuple[str, str]:
     """Generate a personalized cold email via OpenAI.
+
+    Args:
+        sender_context: Optional local/personal hook to weave in naturally
+                        (e.g. "Joel is a UW alum and part of the Pioneer Square Labs ecosystem").
 
     Returns:
         Tuple of (subject_line, email_body).
@@ -80,10 +85,15 @@ def generate_outreach_email(
         sender_name=sender,
     )
 
+    context_line = (
+        f"\nSender context (weave in naturally, don't force it): {sender_context}"
+        if sender_context else ""
+    )
+
     prompt = f"""\
 Company: {company_name}{domain_context}
 Recipient: {first_name} ({ceo_name})
-They're hiring: {job_title_hiring}
+They're hiring: {job_title_hiring}{context_line}
 
 Write a cold email from {sender} to {first_name}. Mention the {job_title_hiring} role,
 and explain how {settings.company_name or 'we'} can help them get results now instead

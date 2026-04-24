@@ -59,10 +59,44 @@ from engine.db.models import (
 LOG_PREFIX = "[GrowthEngine]"
 
 
+# ── SMB campaign Adzuna queries ──────────────────────────────────────────────
+# These target local/SMB businesses hiring their first marketing person.
+# Grouped by vertical so we can label industry context for the drip sequence.
+SMB_ADZUNA_QUERIES: list[tuple[str, str]] = [
+    # (adzuna_query, industry_label_for_context_detection)
+    # Real estate
+    ("marketing manager real estate", "real estate"),
+    ("marketing coordinator real estate broker", "real estate"),
+    ("digital marketing real estate agency", "real estate"),
+    # HVAC / home services
+    ("marketing manager HVAC", "HVAC"),
+    ("marketing coordinator HVAC heating cooling", "HVAC"),
+    ("marketing manager plumbing", "plumbing"),
+    ("marketing coordinator home services", "home services"),
+    ("marketing manager electrician electrical", "electrical"),
+    ("marketing coordinator roofing contractor", "roofing"),
+    # Dental / medical
+    ("marketing coordinator dental office", "dental"),
+    ("marketing manager dental practice", "dental"),
+    # Legal
+    ("marketing coordinator law firm", "legal"),
+    ("marketing manager attorney law office", "legal"),
+    # Other local SMB
+    ("marketing coordinator landscaping", "landscaping"),
+    ("marketing manager pest control", "pest control"),
+    ("marketing coordinator cleaning service", "cleaning services"),
+    ("marketing manager auto repair", "automotive"),
+    ("marketing coordinator insurance agency", "insurance"),
+]
+
+
 def run(
     settings: Settings,
     csv_jobs: str | None = None,
     csv_contacts: str | None = None,
+    campaign: str = "growth_hire",
+    location_filter: str | None = None,
+    no_tech_filter: bool = False,
 ) -> dict[str, int]:
     """Execute the full pipeline. Returns stats dict.
 
@@ -70,6 +104,10 @@ def run(
         settings:      Application settings.
         csv_jobs:      Path to CSV file with job postings (bypasses Sumble Jobs API).
         csv_contacts:  Path to CSV file with contacts (bypasses Sumble People API).
+        campaign:       "growth_hire" (default) or "smb_local". Controls which Adzuna
+                        queries are used and which drip sequence contacts are enrolled in.
+        location_filter: Optional city/metro filter passed to Adzuna's where= param
+                        (e.g. "Portland, OR"). Ignored when using Sumble or CSV.
     """
 
     # --- Logging ---
@@ -172,9 +210,9 @@ def run(
             ] or None
             jobs = load_jobs_csv(csv_jobs, title_keywords=title_keywords)
         else:
-            technologies = [
-                t.strip() for t in settings.job_technologies.split(",") if t.strip()
-            ] or None
+            technologies = None if no_tech_filter else (
+                [t.strip() for t in settings.job_technologies.split(",") if t.strip()] or None
+            )
             countries = [
                 c.strip() for c in settings.job_countries.split(",") if c.strip()
             ] or None
@@ -182,6 +220,29 @@ def run(
             since = (
                 datetime.now(timezone.utc) - timedelta(days=settings.job_since_days)
             ).strftime("%Y-%m-%d")
+
+            # Build location keywords for client-side filtering
+            _location_keywords: list[str] | None = None
+            if location_filter:
+                _PORTLAND_METRO = [
+                    "portland", "beaverton", "hillsboro", "lake oswego",
+                    "tigard", "tualatin", "gresham", "oregon city", "sherwood",
+                    "wilsonville", "oregon", "vancouver, wash",
+                ]
+                _SEATTLE_METRO = [
+                    "seattle", "bellevue", "redmond", "kirkland", "renton",
+                    "bothell", "kent", "federal way", "edmonds", "shoreline",
+                    "tacoma", "washington",
+                ]
+                _filter_lower = location_filter.lower()
+                if any(kw in _filter_lower for kw in ["portland", "portland, or"]):
+                    _location_keywords = _PORTLAND_METRO
+                elif any(kw in _filter_lower for kw in ["seattle", "seattle, wa"]):
+                    _location_keywords = _SEATTLE_METRO
+                elif "pnw" in _filter_lower or "pacific northwest" in _filter_lower:
+                    _location_keywords = _PORTLAND_METRO + _SEATTLE_METRO
+                else:
+                    _location_keywords = [_filter_lower]
 
             jobs = []
             if sumble:
@@ -191,36 +252,64 @@ def run(
                     countries=countries,
                     limit=settings.max_emails_per_run * 3,
                     since=since,
+                    location_keywords=_location_keywords,
                 )
 
             # Always supplement with Adzuna if configured (Sumble inventory is limited)
             if adzuna:
                 needed = settings.max_emails_per_run * 3 - len(jobs)
                 logger.info(
-                    f"Sumble returned {len(jobs)} jobs — supplementing with Adzuna"
+                    f"Sumble returned {len(jobs)} jobs — supplementing with Adzuna "
+                    f"(campaign={campaign}, location={location_filter or 'any'})"
                 )
-                adzuna_queries = [
-                    "head of growth",
-                    "performance marketing manager",
-                    "growth marketing",
-                    "paid media manager",
-                    "demand generation",
-                    "digital marketing director",
-                ]
                 seen_ids = {j.get("id") for j in jobs}
-                for q in adzuna_queries:
-                    if len(jobs) >= settings.max_emails_per_run * 3:
-                        break
-                    adzuna_jobs = adzuna.find_jobs(
-                        query=q,
-                        country=(countries[0].lower() if countries else "us"),
-                        limit=min(needed, 50),
-                    )
-                    for aj in adzuna_jobs:
-                        if aj["id"] not in seen_ids:
-                            seen_ids.add(aj["id"])
-                            jobs.append(aj)
+                adzuna_country = countries[0].lower() if countries else "us"
+
+                if campaign == "smb_local":
+                    # SMB campaign: query local/SMB verticals
+                    for q, industry_hint in SMB_ADZUNA_QUERIES:
+                        if len(jobs) >= settings.max_emails_per_run * 3:
+                            break
+                        adzuna_jobs = adzuna.find_jobs(
+                            query=q,
+                            country=adzuna_country,
+                            limit=min(needed, 50),
+                            where=location_filter or None,
+                        )
+                        for aj in adzuna_jobs:
+                            if aj["id"] not in seen_ids:
+                                seen_ids.add(aj["id"])
+                                aj["_industry_hint"] = industry_hint
+                                jobs.append(aj)
+                else:
+                    # growth_hire campaign: standard growth/performance queries
+                    growth_queries = [
+                        "head of growth",
+                        "performance marketing manager",
+                        "growth marketing",
+                        "paid media manager",
+                        "demand generation",
+                        "digital marketing director",
+                    ]
+                    for q in growth_queries:
+                        if len(jobs) >= settings.max_emails_per_run * 3:
+                            break
+                        adzuna_jobs = adzuna.find_jobs(
+                            query=q,
+                            country=adzuna_country,
+                            limit=min(needed, 50),
+                            where=location_filter or None,
+                        )
+                        for aj in adzuna_jobs:
+                            if aj["id"] not in seen_ids:
+                                seen_ids.add(aj["id"])
+                                jobs.append(aj)
+
                 logger.info(f"Total jobs after Adzuna supplement: {len(jobs)}")
+
+        _run_seen_domains: set[str] = set()      # in-run dedup by domain
+        _run_seen_names: set[str] = set()        # in-run dedup by company name (for Adzuna jobs with no domain yet)
+        _hunter_cache: dict[str, str | None] = {}  # company_name → domain, avoids duplicate Hunter API calls
 
         for job in jobs:
             if stats["processed"] >= settings.max_emails_per_run:
@@ -236,16 +325,31 @@ def run(
             location = job.get("location", "")
             posted_at = job.get("datetime_pulled", "")
 
-            # ── Step 1b: Resolve missing domain via Hunter ─────────────
-            if not org_domain and org_name and hunter:
-                org_domain = hunter.find_domain(org_name)
-                if org_domain:
-                    logger.info(f"Resolved domain for {org_name} → {org_domain}")
-                time.sleep(0.1)
-
-            # ── Step 2: Deduplicate by job ID ────────────────────────
+            # ── Step 2: Deduplicate by job ID (cheap DB check — do before any API calls) ──
             if session.query(JobPosting).filter_by(sumble_job_id=job_id).first():
                 logger.debug(f"Already seen job {job_id} @ {org_name}")
+                continue
+
+            # ── Step 2b: In-run company-name dedup (catches duplicate Adzuna postings before Hunter) ──
+            _org_name_key = org_name.lower().strip()
+            if _org_name_key in _run_seen_names:
+                logger.debug(f"Already queued {org_name} this run — skipping duplicate posting")
+                continue
+
+            # ── Step 1b: Resolve missing domain via Hunter (with in-run cache) ──
+            if not org_domain and org_name and hunter:
+                if org_name in _hunter_cache:
+                    org_domain = _hunter_cache[org_name]
+                else:
+                    org_domain = hunter.find_domain(org_name)
+                    _hunter_cache[org_name] = org_domain
+                    if org_domain:
+                        logger.info(f"Resolved domain for {org_name} → {org_domain}")
+                    time.sleep(0.1)
+
+            # ── Step 1c: In-run domain dedup (catches multiple job posts from same company) ──
+            if org_domain and org_domain in _run_seen_domains:
+                logger.debug(f"Already queued {org_domain} this run — skipping duplicate posting")
                 continue
 
             # ── Step 3: Deduplicate by company domain ────────────────
@@ -287,6 +391,9 @@ def run(
             session.add(job_record)
             session.commit()
             stats["new_jobs"] += 1
+            _run_seen_names.add(_org_name_key)
+            if org_domain:
+                _run_seen_domains.add(org_domain)
 
             # ── Step 5: Find contact (marketing leader → CEO) ────────
             # Check CSV contacts first, then fall back to Sumble API
@@ -374,6 +481,21 @@ def run(
 
             # ── Step 9: Email outreach (if channel includes email) ───
             if use_email:
+                # Build local sender context for geo-targeted campaigns
+                _sender_context: str | None = None
+                _loc = (location_filter or "").lower()
+                if any(kw in _loc for kw in ["seattle", "bellevue", "redmond", "kirkland"]):
+                    _sender_context = (
+                        "Joel is a former UW (University of Washington) alum and part of "
+                        "the Pioneer Square Labs ecosystem in Seattle. Mention this naturally "
+                        "as a local connection — keep it brief, one line max."
+                    )
+                elif any(kw in _loc for kw in ["portland", "beaverton", "lake oswego"]):
+                    _sender_context = (
+                        "Joel is based in Portland, OR. Mention this as a local connection "
+                        "— keep it brief, one line max."
+                    )
+
                 email_ok = _handle_email_outreach(
                     settings=settings,
                     session=session,
@@ -384,11 +506,37 @@ def run(
                     org_domain=org_domain or org_name,
                     job_title=job_title,
                     logger=logger,
+                    sender_context=_sender_context,
                 )
                 if email_ok:
                     stats["emails_sent"] += 1
                 else:
                     stats["emails_skipped"] += 1
+
+            # ── Step 10: Enroll SMB contacts in the SMB drip sequence ───
+            if campaign == "smb_local" and ceo_email:
+                from engine.drip.scheduler import enroll_contact
+                from engine.drip.sequence_smb import detect_industry_context
+
+                industry_hint = job.get("_industry_hint", "")
+                industry_ctx = detect_industry_context(
+                    job_title=job_title,
+                    company_name=org_name,
+                    query=industry_hint,
+                )
+                first_name = ceo_name.split()[0] if ceo_name else ""
+                enroll_contact(
+                    session=session,
+                    email=ceo_email,
+                    first_name=first_name,
+                    company=org_name,
+                    enrichment_data={
+                        "jobTitleHiring": job_title,
+                        **industry_ctx,
+                    },
+                    campaign="smb_local",
+                )
+                session.commit()
 
             stats["processed"] += 1
             contacted_companies.append(org_name)
@@ -520,6 +668,7 @@ def _handle_email_outreach(
     org_domain: str,
     job_title: str,
     logger: logging.Logger,
+    sender_context: str | None = None,
 ) -> bool:
     """Generate and send email outreach. Returns True if sent."""
 
@@ -539,16 +688,17 @@ def _handle_email_outreach(
             company_name=org_name,
             job_title_hiring=job_title,
             company_domain=org_domain,
+            sender_context=sender_context,
         )
 
     if settings.dry_run:
-        status = EmailStatus.SKIPPED
         logger.info(
             f"[DRY RUN] Email → {ceo_email or '(no email)'} | "
             f"{ceo_name} @ {org_name}\n"
             f"  Subject: {subject}\n"
             f"  Body: {body[:150]}..."
         )
+        return False  # don't write to email_log in dry run
     elif not ceo_email:
         status = EmailStatus.SKIPPED
         logger.info(
@@ -1198,6 +1348,8 @@ def main() -> None:
         help="Output file path for export (default: auto-generated in data/)",
     )
     parser.add_argument("--query", type=str, help="Job title query (default: from .env)")
+    parser.add_argument("--location", type=str, help="Location filter for Adzuna (e.g. 'Portland, OR')")
+    parser.add_argument("--no-tech-filter", action="store_true", help="Disable technology filter — broader job search (useful for local campaigns)")
     parser.add_argument("--limit", type=int, help="Max outreach per run (default: from .env)")
     parser.add_argument(
         "--csv", type=str, metavar="FILE",
@@ -1220,6 +1372,16 @@ def main() -> None:
     parser.add_argument(
         "--drip", action="store_true",
         help="Run drip scheduler — sends next due email for each active contact",
+    )
+    parser.add_argument(
+        "--campaign",
+        choices=["growth_hire", "smb_local"],
+        default="growth_hire",
+        help=(
+            "Campaign to run: 'growth_hire' (default) targets tech/startup companies "
+            "hiring growth/performance roles; 'smb_local' targets SMB businesses "
+            "(real estate, HVAC, etc.) hiring their first marketing person"
+        ),
     )
     # X Growth Engine flags
     parser.add_argument(
@@ -1617,14 +1779,16 @@ def main() -> None:
     if args.drip:
         from engine.drip.scheduler import run_drip
 
-        drip_session_factory = init_db(settings.db_path)
+        drip_session_factory = init_db(settings.database_path)
         drip_session = drip_session_factory()
+        campaign_filter = args.campaign if hasattr(args, "campaign") else None
         try:
             drip_stats = run_drip(
                 session=drip_session,
                 settings=settings,
                 dry_run=settings.dry_run,
                 limit=args.limit or 50,
+                campaign=campaign_filter,
             )
             logger.info(f"Drip stats: {drip_stats}")
         finally:
@@ -1650,7 +1814,22 @@ def main() -> None:
     if args.linkedin_type:
         settings.linkedin_outreach_type = args.linkedin_type
 
-    run(settings, csv_jobs=args.csv, csv_contacts=args.csv_contacts)
+    campaign = getattr(args, "campaign", "growth_hire") or "growth_hire"
+
+    # For SMB campaign: default job query targets marketing generalists, not growth leaders
+    if campaign == "smb_local" and not args.query:
+        settings.job_query = "marketing manager"
+
+    location_filter = getattr(args, "location", None) or settings.job_location_filter or None
+
+    run(
+        settings,
+        csv_jobs=args.csv,
+        csv_contacts=args.csv_contacts,
+        campaign=campaign,
+        location_filter=location_filter,
+        no_tech_filter=getattr(args, "no_tech_filter", False),
+    )
 
 
 if __name__ == "__main__":

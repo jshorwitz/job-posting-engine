@@ -1,8 +1,8 @@
-"""Vector.co visitor → LinkedIn outreach pipeline.
+"""Vector.co visitor → Smartlead email outreach pipeline.
 
 Receives identified website visitors from Vector.co via webhook,
 enriches them with competitive intelligence (SpyFu, BuiltWith, Synter),
-generates personalized InMail messages, and sends via LinkedIn Sales Navigator.
+generates personalized cold emails, and adds them to a Smartlead campaign.
 
 Usage:
     python -m engine.vector_pipeline --webhook     # start webhook server
@@ -17,7 +17,6 @@ import hmac
 import json
 import logging
 import os
-import sys
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -25,9 +24,8 @@ from sqlalchemy.orm import Session
 from engine.config import Settings
 from engine.db.database import get_session
 from engine.db.models import (
-    LinkedInOutreach,
-    LinkedInOutreachStatus,
-    OutreachType,
+    EmailLog,
+    EmailStatus,
     VectorVisitor,
 )
 from engine.enrichment import enrich_lead
@@ -41,11 +39,11 @@ def run_vector_pipeline(
     *,
     source: str = "vector_webhook",
 ) -> dict[str, int]:
-    """Process Vector visitors: enrich → generate InMail → send via LinkedIn.
+    """Process Vector visitors: enrich → generate email → send via Smartlead.
 
     Finds visitors where outreach_sent=False, enriches them,
-    generates personalized LinkedIn InMail messages, and sends
-    via Sales Navigator automation.
+    generates personalized cold emails, and adds to a Smartlead campaign.
+    Deduplicates against EmailLog by visitor_email.
     """
     stats = {"processed": 0, "enriched": 0, "sent": 0, "skipped": 0, "failed": 0}
 
@@ -64,25 +62,18 @@ def run_vector_pipeline(
 
     logger.info(f"[Vector] Processing {len(visitors)} visitors")
 
-    linkedin_bot = None
-
     for visitor in visitors:
         stats["processed"] += 1
 
-        # Check if already contacted this domain via LinkedIn
+        # Dedup: skip if we already emailed this address
         existing = (
-            session.query(LinkedInOutreach)
-            .filter_by(company_domain=visitor.company_domain)
-            .filter(
-                LinkedInOutreach.status.in_([
-                    LinkedInOutreachStatus.SENT,
-                    LinkedInOutreachStatus.SKIPPED,
-                ])
-            )
+            session.query(EmailLog)
+            .filter(EmailLog.contact_email == visitor.visitor_email)
+            .filter(EmailLog.status.in_([EmailStatus.SENT, EmailStatus.SKIPPED]))
             .first()
         )
         if existing:
-            logger.info(f"[Vector] Already contacted {visitor.company_domain}, skipping")
+            logger.info(f"[Vector] Already emailed {visitor.visitor_email}, skipping")
             visitor.outreach_sent = True
             session.commit()
             stats["skipped"] += 1
@@ -101,10 +92,10 @@ def run_vector_pipeline(
         visitor.enrichment_json = json.dumps(enrichment, default=str)
         session.commit()
 
-        # Generate LinkedIn InMail
-        from engine.ai.linkedin_writer import generate_inmail
+        # Generate personalized cold email
+        from engine.ai.email_writer import generate_outreach_email
 
-        subject, body = generate_inmail(
+        subject, body = generate_outreach_email(
             settings=settings,
             ceo_name=visitor.visitor_name,
             company_name=visitor.company_name,
@@ -115,64 +106,51 @@ def run_vector_pipeline(
         if settings.dry_run:
             logger.info(
                 f"[Vector DRY RUN] → {visitor.visitor_name} @ {visitor.company_name}\n"
-                f"  LinkedIn: {visitor.linkedin_url}\n"
+                f"  Email: {visitor.visitor_email}\n"
                 f"  Subject: {subject}\n  Body: {body[:150]}..."
             )
-            status = LinkedInOutreachStatus.SKIPPED
+            email_status = EmailStatus.SKIPPED
         else:
-            if not visitor.linkedin_url:
-                logger.warning(f"[Vector] No LinkedIn URL for {visitor.visitor_name}, skipping")
-                status = LinkedInOutreachStatus.SKIPPED
-            else:
-                # Lazy-init LinkedIn automation
-                if linkedin_bot is None:
-                    from engine.outreach.linkedin_sender import LinkedInAutomation
+            from engine.outreach.smartlead_sender import send_email as smartlead_send
 
-                    linkedin_bot = LinkedInAutomation(settings)
+            success = smartlead_send(
+                settings=settings,
+                to_email=visitor.visitor_email,
+                to_name=visitor.visitor_name,
+                subject=subject,
+                body=body,
+                company_name=visitor.company_name,
+                job_title=visitor.job_title or "marketing leader",
+            )
+            email_status = EmailStatus.SENT if success else EmailStatus.FAILED
+            if not success:
+                logger.warning(f"[Vector] Smartlead send failed for {visitor.visitor_email}")
 
-                success, error_msg = linkedin_bot.send_inmail(
-                    linkedin_url=visitor.linkedin_url,
-                    subject=subject,
-                    body=body,
-                )
-                status = LinkedInOutreachStatus.SENT if success else LinkedInOutreachStatus.FAILED
-                if not success:
-                    logger.warning(f"[Vector] InMail failed for {visitor.visitor_name}: {error_msg}")
-
-        # Log to LinkedInOutreach table
-        outreach_type = (
-            OutreachType.LINKEDIN_INMAIL
-            if settings.linkedin_outreach_type == "inmail"
-            else OutreachType.LINKEDIN_CONNECTION
-        )
-        log_entry = LinkedInOutreach(
+        # Log to EmailLog for dedup and reporting
+        log_entry = EmailLog(
             company_domain=visitor.company_domain,
             company_name=visitor.company_name,
             contact_name=visitor.visitor_name,
-            contact_linkedin=visitor.linkedin_url or "",
+            contact_email=visitor.visitor_email,
+            contact_linkedin=visitor.linkedin_url,
             job_title_hiring=visitor.job_title or "visitor",
-            outreach_type=outreach_type,
-            message_subject=subject,
-            message_body=body[:500],
-            status=status,
-            sent_at=datetime.utcnow() if status == LinkedInOutreachStatus.SENT else None,
+            email_subject=subject,
+            email_body_preview=body[:500],
+            status=email_status,
+            sent_at=datetime.utcnow() if email_status == EmailStatus.SENT else None,
         )
         session.add(log_entry)
 
-        if status == LinkedInOutreachStatus.SENT:
+        if email_status == EmailStatus.SENT:
             visitor.outreach_sent = True
             stats["sent"] += 1
-        elif status == LinkedInOutreachStatus.SKIPPED:
+        elif email_status == EmailStatus.SKIPPED:
             visitor.outreach_sent = True
             stats["skipped"] += 1
         else:
             stats["failed"] += 1
 
         session.commit()
-
-    # Clean up browser if we opened one
-    if linkedin_bot is not None:
-        linkedin_bot.close()
 
     logger.info(
         f"[Vector] Pipeline complete: {stats['processed']} processed, "

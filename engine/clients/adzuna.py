@@ -37,6 +37,7 @@ class AdzunaClient:
         country: str = "us",
         limit: int = 50,
         title_only: bool = False,
+        where: str | None = None,
     ) -> list[dict[str, Any]]:
         """Search for job postings matching a query.
 
@@ -45,6 +46,8 @@ class AdzunaClient:
             country:    ISO country code (default: "us").
             limit:      Max results to return.
             title_only: If True, search only job titles (not descriptions).
+            where:      Location filter (e.g. "Portland, OR", "Seattle").
+                        Adzuna matches against job location text.
 
         Returns:
             List of normalised job dicts compatible with the pipeline:
@@ -70,6 +73,9 @@ class AdzunaClient:
                     params["title_only"] = query
                 else:
                     params["what"] = query
+
+                if where:
+                    params["where"] = where
 
                 url = f"{BASE_URL}/{country}/search/{page}"
 
