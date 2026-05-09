@@ -48,3 +48,16 @@ def init_db(db_path: str) -> sessionmaker[Session]:
     _migrate_db(engine)
 
     return sessionmaker(bind=engine, autoflush=False, autocommit=False)
+
+
+def get_session(settings) -> Session:
+    """Return a ready-to-use SQLAlchemy Session for the configured database.
+
+    Convenience helper used by `engine.vector_pipeline` and the hourly
+    Vector outreach scheduler in `scripts/x_scheduler.py`. Without this
+    function the scheduler crashes hourly with:
+        ImportError: cannot import name 'get_session' from 'engine.db.database'
+    """
+    db_path = getattr(settings, "database_path", None) or getattr(settings, "db_path", "data/outreach.db")
+    SessionFactory = init_db(db_path)
+    return SessionFactory()
