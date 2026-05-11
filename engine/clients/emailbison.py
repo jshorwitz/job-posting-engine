@@ -37,6 +37,49 @@ class EmailBisonClient:
             "Content-Type": "application/json",
         }
 
+    def _get_paginated(
+        self,
+        path: str,
+        params: dict[str, Any] | None = None,
+        max_pages: int = 5,
+    ) -> list[dict[str, Any]]:
+        """Fetch a paginated EmailBison collection.
+
+        EmailBison paginates collection responses under `data` with `links.next`.
+        Keep max_pages bounded so reporting commands cannot accidentally traverse
+        the full workspace during interactive inspections.
+        """
+        rows: list[dict[str, Any]] = []
+        page = 1
+        next_url: str | None = f"{self._base_url}{path}"
+        query = dict(params or {})
+
+        while next_url and page <= max_pages:
+            query["page"] = page
+            try:
+                with httpx.Client(timeout=30.0) as client:
+                    resp = client.get(next_url, headers=self._headers, params=query)
+            except Exception as exc:
+                logger.error(f"[EmailBison] Error fetching {path}: {exc}")
+                break
+
+            if resp.status_code != 200:
+                logger.warning(
+                    f"[EmailBison] Failed to fetch {path}: "
+                    f"HTTP {resp.status_code} — {resp.text[:200]}"
+                )
+                break
+
+            data = resp.json()
+            page_rows = data.get("data", [])
+            if isinstance(page_rows, list):
+                rows.extend([row for row in page_rows if isinstance(row, dict)])
+            next_url = data.get("links", {}).get("next")
+            page += 1
+            query = {}
+
+        return rows
+
     # ── Leads ────────────────────────────────────────────────────────
 
     def create_lead(
@@ -182,20 +225,77 @@ class EmailBisonClient:
 
     def get_campaigns(self) -> list[dict[str, Any]]:
         """List all campaigns in the workspace."""
+        return self._get_paginated("/api/campaigns", max_pages=10)
+
+    def get_campaign(self, campaign_id: int | str) -> dict[str, Any] | None:
+        """Fetch one campaign's settings/details."""
         try:
             with httpx.Client(timeout=30.0) as client:
                 resp = client.get(
-                    f"{self._base_url}/api/campaigns",
+                    f"{self._base_url}/api/campaigns/{campaign_id}",
                     headers=self._headers,
                 )
 
             if resp.status_code == 200:
-                return resp.json().get("data", [])
-            return []
+                data = resp.json()
+                return data.get("data", data)
+
+            logger.warning(
+                f"[EmailBison] Failed to fetch campaign {campaign_id}: "
+                f"HTTP {resp.status_code} — {resp.text[:200]}"
+            )
+            return None
 
         except Exception as exc:
-            logger.error(f"[EmailBison] Error fetching campaigns: {exc}")
-            return []
+            logger.error(f"[EmailBison] Error fetching campaign {campaign_id}: {exc}")
+            return None
+
+    # ── Replies ──────────────────────────────────────────────────────
+
+    def get_replies(
+        self,
+        *,
+        campaign_id: int | str | None = None,
+        status: str | None = None,
+        folder: str | None = "inbox",
+        read: bool | None = None,
+        max_pages: int = 5,
+    ) -> list[dict[str, Any]]:
+        """Fetch master-inbox replies.
+
+        Read-only wrapper around `GET /api/replies`. EmailBison also supports
+        per-lead replies at `/api/leads/{lead_id}/replies`; the master inbox
+        endpoint is better for campaign review and triage.
+        """
+        params: dict[str, Any] = {}
+        if campaign_id is not None:
+            params["campaign_id"] = campaign_id
+        if status:
+            params["status"] = status
+        if folder:
+            params["folder"] = folder
+        if read is not None:
+            params["read"] = read
+
+        return self._get_paginated("/api/replies", params=params, max_pages=max_pages)
+
+    def get_campaign_replies(
+        self,
+        campaign_id: int | str,
+        *,
+        status: str | None = None,
+        folder: str | None = "inbox",
+        read: bool | None = None,
+        max_pages: int = 5,
+    ) -> list[dict[str, Any]]:
+        """Fetch replies scoped to a single campaign."""
+        return self.get_replies(
+            campaign_id=campaign_id,
+            status=status,
+            folder=folder,
+            read=read,
+            max_pages=max_pages,
+        )
 
     # ── High-level helpers ───────────────────────────────────────────
 

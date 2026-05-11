@@ -27,6 +27,7 @@ def send_email(
     company_name: str = "",
     job_title: str = "",
     campaign_id_override: str = "",
+    custom_fields: dict[str, str] | None = None,
 ) -> bool:
     """Add a lead to a Smartlead campaign and trigger the email sequence.
 
@@ -47,6 +48,16 @@ def send_email(
     first_name = parts[0]
     last_name = parts[1] if len(parts) > 1 else ""
 
+    merged_custom_fields = {
+        "job_title": job_title,
+        "email_subject": subject,
+        "email_body": body,
+    }
+    if custom_fields:
+        merged_custom_fields.update(
+            {key: value for key, value in custom_fields.items() if value is not None}
+        )
+
     lead_payload = {
         "lead_list": [
             {
@@ -54,11 +65,7 @@ def send_email(
                 "first_name": first_name,
                 "last_name": last_name,
                 "company_name": company_name,
-                "custom_fields": {
-                    "job_title": job_title,
-                    "email_subject": subject,
-                    "email_body": body,
-                },
+                "custom_fields": merged_custom_fields,
             }
         ],
         "settings": {

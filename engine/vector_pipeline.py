@@ -28,7 +28,9 @@ from engine.db.models import (
     EmailStatus,
     VectorVisitor,
 )
+from engine.ai.vector_visitor_email import render_vector_visitor_sequence
 from engine.enrichment import enrich_lead
+from engine.vector_filters import should_skip_vector_visitor
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +67,16 @@ def run_vector_pipeline(
     for visitor in visitors:
         stats["processed"] += 1
 
+        should_skip, skip_reason = should_skip_vector_visitor(visitor)
+        if should_skip:
+            logger.info(
+                f"[Vector] Skipping {visitor.visitor_email}: {skip_reason}"
+            )
+            visitor.outreach_sent = True
+            session.commit()
+            stats["skipped"] += 1
+            continue
+
         # Dedup: skip if we already emailed this address
         existing = (
             session.query(EmailLog)
@@ -92,16 +104,10 @@ def run_vector_pipeline(
         visitor.enrichment_json = json.dumps(enrichment, default=str)
         session.commit()
 
-        # Generate personalized cold email
-        from engine.ai.email_writer import generate_outreach_email
-
-        subject, body = generate_outreach_email(
-            settings=settings,
-            ceo_name=visitor.visitor_name,
-            company_name=visitor.company_name,
-            job_title_hiring=visitor.job_title or "marketing leader",
-            company_domain=visitor.company_domain,
-        )
+        # Use deterministic Vector visitor copy so this campaign stays aligned
+        # with the approved website-visitor messaging.
+        sequence = render_vector_visitor_sequence(visitor.visitor_name)
+        subject, body = sequence.initial.subject, sequence.initial.body
 
         if settings.dry_run:
             logger.info(
@@ -121,6 +127,12 @@ def run_vector_pipeline(
                 body=body,
                 company_name=visitor.company_name,
                 job_title=visitor.job_title or "marketing leader",
+                custom_fields={
+                    "follow_up_1_subject": sequence.follow_up.subject,
+                    "follow_up_1_body": sequence.follow_up.body,
+                    "follow_up_2_subject": sequence.final.subject,
+                    "follow_up_2_body": sequence.final.body,
+                },
             )
             email_status = EmailStatus.SENT if success else EmailStatus.FAILED
             if not success:
